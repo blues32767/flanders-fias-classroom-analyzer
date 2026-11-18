@@ -1,8 +1,8 @@
 # 佛蘭德斯互動分析法（FIAS）量化分析工具網頁版
 
-本工具依《工具7、佛蘭德斯（Flanders）互動分析法量化分析表》設計，協助觀課人員將課堂口語互動代碼轉換為量化結果，並產生分析表與給授課教師的質性回饋草稿。
+本工具依《佛蘭德斯（Flanders）互動分析法量化分析表》設計，協助觀課人員將課堂口語互動代碼轉換為量化結果，並產生分析表與給授課教師的質性回饋草稿。
 
-**線上使用**：https://<你的帳號>.github.io/flanders-fias-tool7/
+**線上使用**：[https://blues32767.github.io/flanders-fias-classroom-analyzer/](https://blues32767.github.io/flanders-fias-classroom-analyzer/)
 
 ## 功能
 
