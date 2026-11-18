@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-layout="desktop" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="佛蘭德斯（Flanders）互動分析量化工具：課堂即時記錄、矩陣與指標分析、一鍵產生附件 Word 表單。">
+<meta name="theme-color" content="#1f5f3f">
+<title>佛蘭德斯互動分析量化工具</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#f2f7f4;--surface:#ffffff;--surface2:#eef5f1;--ink:#15241b;--muted:#5a6b61;
+  --brand:#1f5f3f;--brand2:#2e8b5e;--on-brand:#ffffff;--accent:#e9a93b;--line:#d8e5dd;
+  --ind:#2e8b5e;--dir:#d9662b;--stu:#3b6fd8;--sil:#6f7a84;--danger:#c0392b;
+  --shadow:0 20px 44px -26px rgba(10,45,28,.45);--r:20px;--focus:#e9a93b;
+  color-scheme:light;
+}
+html[data-theme=dark]{
+  --bg:#0c1712;--surface:#13221a;--surface2:#1a2d23;--ink:#e6f2ea;--muted:#9bb3a6;
+  --brand:#49b27d;--brand2:#3c9e6e;--on-brand:#06150d;--accent:#f2b84b;--line:#27402f;
+  --shadow:0 20px 44px -26px #000;color-scheme:dark;
+}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(900px 500px at 8% -10%,rgba(46,139,94,.18),transparent 60%),radial-gradient(700px 480px at 100% 0%,rgba(233,169,59,.13),transparent 60%)}
+h1,h2,h3{line-height:1.3;margin:0}
+h2{font-size:clamp(20px,2.4vw,26px);letter-spacing:.02em}
+h3{font-size:17px;margin-bottom:12px}
+p{margin:.4em 0}
+small,.muted{color:var(--muted)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip{position:absolute;left:-999px;top:8px;background:var(--surface);color:var(--ink);padding:8px 12px;border-radius:10px;z-index:99}
+.skip:focus{left:12px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+/* ---------- 頂部列 ---------- */
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 22px;
+  background:linear-gradient(120deg,var(--brand),var(--brand2));color:var(--on-brand);box-shadow:0 10px 30px -18px rgba(0,0,0,.5)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-weight:900;font-size:22px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35)}
+html[data-theme=dark] .logo{background:rgba(0,0,0,.2)}
+.brand h1{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand p{font-size:13px;opacity:.88;margin:0}
+.tools{display:flex;align-items:center;gap:10px;flex:none}
+.seg{display:inline-flex;padding:4px;border-radius:999px;background:rgba(0,0,0,.18)}
+.seg button{appearance:none;border:0;background:transparent;color:inherit;font:inherit;font-size:14px;padding:7px 14px;border-radius:999px;cursor:pointer;opacity:.85;transition:background .2s,opacity .2s}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--brand);opacity:1;font-weight:700;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+html[data-theme=dark] .seg button[aria-pressed=true]{color:#06150d;background:#e6f2ea}
+.ghost-top{appearance:none;border:1px solid rgba(255,255,255,.45);background:transparent;color:inherit;font:inherit;font-size:14px;padding:7px 12px;border-radius:999px;cursor:pointer}
+
+/* ---------- 版面骨架 ---------- */
+.shell{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:calc(100vh - 72px)}
+.side{padding:24px 16px;border-right:1px solid var(--line);background:color-mix(in srgb,var(--surface) 92%,transparent)}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.steps button{width:100%;display:flex;align-items:center;gap:12px;text-align:left;appearance:none;border:1px solid transparent;background:transparent;color:var(--ink);font:inherit;padding:10px 10px;border-radius:14px;cursor:pointer;transition:background .2s,border-color .2s}
+.steps button:hover{background:var(--surface2)}
+.steps button[aria-current=step]{background:var(--surface2);border-color:var(--brand)}
+.steps .num{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--surface2);color:var(--brand);border:1px solid var(--line)}
+.steps button[aria-current=step] .num{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+.steps b{display:block;font-size:15px}
+.steps small{font-size:12.5px}
+.side-foot{margin-top:22px;padding:14px;border-radius:16px;background:var(--surface2);font-size:13px;color:var(--muted)}
+.side-foot kbd{font-family:inherit;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:0 6px;color:var(--ink)}
+.main{padding:28px 32px 70px;min-width:0;max-width:1200px;width:100%}
+.panel:not([hidden]){animation:rise .42s cubic-bezier(.2,.7,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---------- 元件 ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--shadow);margin-bottom:16px;min-width:0}
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,color-mix(in srgb,var(--brand) 88%,#000),var(--brand2));color:var(--on-brand);border:0}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.12)}
+.hero p{opacity:.92}
+.hero-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;position:relative;z-index:1}
+.kpis{display:flex;gap:10px;flex-wrap:wrap}
+.kpi{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:16px;padding:10px 16px;min-width:110px}
+.kpi b{display:block;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{font-size:13px;opacity:.92}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid-2>.card{margin-bottom:0}
+.stack>*+*{margin-top:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:15px;font-weight:600;padding:11px 18px;border-radius:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;transition:transform .12s,background .2s,border-color .2s,box-shadow .2s;min-height:44px}
+.btn:hover{border-color:var(--brand)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn.primary{background:var(--brand);color:var(--on-brand);border-color:transparent;box-shadow:0 12px 24px -14px var(--brand)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger);border-color:var(--danger)}
+.btn.sm{min-height:36px;padding:7px 12px;font-size:14px;border-radius:12px}
+.btn.busy{opacity:.7;pointer-events:none}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;vertical-align:middle}
+.tag.ok{background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--brand)}
+.tag.match{background:color-mix(in srgb,var(--accent) 22%,transparent);color:#8a5a00}
+html[data-theme=dark] .tag.match{color:var(--accent)}
+.tag.pending{background:var(--surface2);color:var(--muted);border:1px dashed var(--muted)}
+.tag.warn{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
+
+input[type=text],input[type=number],input[type=date],textarea,select{font:inherit;color:var(--ink);background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:11px 13px;width:100%;min-height:44px;transition:border-color .2s,box-shadow .2s}
+textarea{min-height:96px;resize:vertical;line-height:1.6}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 18%,transparent)}
+label.field{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--muted);min-width:0}
+label.field input,label.field textarea{color:var(--ink);font-weight:400}
+.form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.form-grid .wide{grid-column:span 2}
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.pick{position:relative;display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);cursor:pointer;font-size:15px;transition:border-color .2s,box-shadow .2s,transform .12s;min-height:48px;user-select:none}
+.pick input{width:20px;height:20px;accent-color:var(--brand);flex:none;margin:0}
+.pick:has(input:checked){border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand)}
+.pick.ind{border-left:5px solid var(--ind)}.pick.dir{border-left:5px solid var(--dir)}.pick.stu{border-left:5px solid var(--stu)}.pick.sil{border-left:5px solid var(--sil)}
+.styles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.styles .pick{flex-direction:column;align-items:flex-start;justify-content:center;min-height:70px}
+.styles .pick b{font-size:15px}
+.note-box{font-size:13px;color:var(--muted);background:var(--surface2);border-radius:14px;padding:10px 14px;margin-top:12px}
+details.card summary{cursor:pointer;font-weight:700;list-style:none;display:flex;align-items:center;justify-content:space-between}
+details.card summary::after{content:"＋";font-size:20px;color:var(--brand)}
+details[open].card summary::after{content:"－"}
+details .settings{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+
+/* ---------- 步驟一：鍵盤 ---------- */
+.keypad{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.key{appearance:none;border:0;border-radius:18px;min-height:96px;padding:12px 6px;color:#fff;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 14px 24px -16px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .08s,filter .2s;position:relative;overflow:hidden}
+.key::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(255,255,255,.28),transparent 60%);pointer-events:none}
+.key:hover{filter:brightness(1.07)}
+.key:active,.key.flash{transform:scale(.94)}
+.key b{font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.key span{font-size:14px;font-weight:600;opacity:.97}
+.key.ind{background:linear-gradient(160deg,#42b07a,#1f6e4b)}
+.key.dir{background:linear-gradient(160deg,#f28a4f,#bf4f17)}
+.key.stu{background:linear-gradient(160deg,#6b97ef,#2c5cc0)}
+.key.sil{background:linear-gradient(160deg,#9aa4ad,#5b6670)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0 0;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:6px;vertical-align:-1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-height:40px;margin-top:6px;max-height:180px;overflow:auto;padding:4px}
+.chip{display:inline-grid;place-items:center;min-width:30px;height:30px;padding:0 6px;border-radius:9px;font-weight:800;font-size:13px;color:#fff;font-variant-numeric:tabular-nums;animation:pop .3s ease both}
+.chip.ind{background:var(--ind)}.chip.dir{background:var(--dir)}.chip.stu{background:var(--stu)}.chip.sil{background:var(--sil)}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.empty-hint{color:var(--muted);font-size:14px}
+
+/* ---------- 步驟二：結果 ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}
+.stat small{font-size:13px}
+.stat b{display:block;font-size:28px;color:var(--brand);font-variant-numeric:tabular-nums;line-height:1.2;margin-top:4px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.metric{border:1px solid var(--line);border-radius:16px;padding:14px;background:var(--surface2);min-width:0}
+.metric.pending{background:transparent;border-style:dashed}
+.metric header{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:4px}
+.metric header b{font-size:15px}
+.metric .val{font-size:26px;font-weight:800;color:var(--brand);font-variant-numeric:tabular-nums;line-height:1.2}
+.metric.pending .val{color:var(--muted);font-size:16px;font-weight:600}
+.metric p{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.bars svg{width:100%;height:auto;display:block}
+.bars text{font-family:inherit;fill:var(--ink)}
+.bars .bv{font-size:13px;font-weight:700}
+.bars .bl{font-size:13px;font-weight:800}
+.bars .bn{font-size:11px;fill:var(--muted)}
+.legend-svg{font-size:12px}
+.matrix-wrap{overflow:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;max-width:100%;width:100%;contain:inline-size}
+.matrix-wrap table.m{max-width:none}
+table.m{border-collapse:separate;border-spacing:4px;font-size:13px;margin:0 auto}
+table.m th{font-weight:700;color:var(--muted);padding:2px 6px;white-space:nowrap}
+table.m td{width:46px;height:38px;text-align:center;border-radius:10px;font-variant-numeric:tabular-nums;color:var(--ink);transition:transform .15s}
+table.m td:hover{transform:scale(1.08)}
+table.m td.tot{background:var(--surface2);font-weight:800;color:var(--brand)}
+.style-card{border-radius:16px;padding:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--brand) 14%,transparent),transparent);border:1px solid var(--line)}
+.style-card b{font-size:22px;color:var(--brand)}
+
+/* ---------- 步驟三：表單 ---------- */
+.export-bar{position:sticky;bottom:12px;z-index:30;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px 16px;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.status{font-size:13px;padding:5px 11px;border-radius:999px;background:var(--surface2);color:var(--muted)}
+.status.ok{color:var(--brand);background:color-mix(in srgb,var(--brand) 14%,transparent)}
+.status.warn{color:#9a5b00;background:color-mix(in srgb,var(--accent) 22%,transparent)}
+html[data-theme=dark] .status.warn{color:var(--accent)}
+#dl a{margin-top:10px}
+
+/* ---------- 底部操作列（手機） ---------- */
+.dock{display:none;position:fixed;left:0;right:0;bottom:0;z-index:50;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line)}
+.dock .btn{flex:1}
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,24px);opacity:0;pointer-events:none;background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-size:14px;z-index:90;transition:opacity .25s,transform .25s;max-width:min(92vw,520px);text-align:center;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- 版面：電腦版（預設） ---------- */
+html[data-layout=desktop] .key{min-height:104px}
+@media (hover:hover){
+  html[data-layout=desktop] .card:not(.hero):hover{border-color:color-mix(in srgb,var(--brand) 35%,var(--line))}
+  html[data-layout=desktop] .stat:hover,html[data-layout=desktop] .metric:hover{transform:translateY(-2px);transition:transform .2s}
+}
+
+/* ---------- 版面：手機版 ---------- */
+html[data-layout=mobile] .shell{display:block}
+html[data-layout=mobile] .side{position:sticky;top:60px;z-index:30;border-right:0;border-bottom:1px solid var(--line);padding:8px 10px;background:color-mix(in srgb,var(--surface) 95%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+html[data-layout=mobile] .steps{flex-direction:row;gap:6px}
+html[data-layout=mobile] .steps button{padding:6px 8px;gap:8px;justify-content:center;min-width:0;flex:1}
+html[data-layout=mobile] .steps .num{width:28px;height:28px;font-size:14px}
+html[data-layout=mobile] .steps b{font-size:14px;white-space:nowrap}
+html[data-layout=mobile] .steps small,html[data-layout=mobile] .side-foot{display:none}
+html[data-layout=mobile] .main{padding:16px 14px calc(176px + env(safe-area-inset-bottom));max-width:100vw;overflow-x:hidden}
+html[data-layout=mobile] .card{padding:16px;border-radius:18px}
+html[data-layout=mobile] .topbar{padding:10px 14px;position:sticky;top:0}
+html[data-layout=mobile] .brand p{display:none}
+html[data-layout=mobile] .brand h1{font-size:16px}
+html[data-layout=mobile] .logo{width:36px;height:36px;font-size:18px;border-radius:12px}
+html[data-layout=mobile] .seg button{padding:6px 10px;font-size:13px}
+html[data-layout=mobile] .ghost-top{padding:6px 10px;font-size:13px}
+html[data-layout=mobile] .tools{gap:6px}
+html[data-layout=mobile] .tools .seg{padding:3px}
+html[data-layout=mobile] .dock{display:flex}
+html[data-layout=mobile][data-step="1"] .dock{display:none}
+html[data-layout=mobile][data-step="1"] .main{padding-bottom:110px}
+html[data-layout=mobile] .keypad{gap:9px}
+html[data-layout=mobile] .key{min-height:104px;border-radius:20px}
+html[data-layout=mobile] .key b{font-size:38px}
+html[data-layout=mobile] .grid-2{grid-template-columns:1fr}
+html[data-layout=mobile] .form-grid{grid-template-columns:1fr 1fr}
+html[data-layout=mobile] .form-grid .wide{grid-column:span 2}
+html[data-layout=mobile] .styles{grid-template-columns:1fr 1fr}
+html[data-layout=mobile] .picks{grid-template-columns:1fr 1fr}
+html[data-layout=mobile] .metrics{grid-template-columns:1fr 1fr}
+html[data-layout=mobile] .stats{grid-template-columns:1fr 1fr}
+html[data-layout=mobile] .stat b{font-size:24px}
+html[data-layout=mobile] .export-bar{bottom:84px;margin-bottom:8px}
+html[data-layout=mobile] .toolbar .btn{flex:1}
+html[data-layout=mobile] details .settings{grid-template-columns:1fr}
+html[data-layout=mobile] .hero-row{flex-direction:column;align-items:flex-start}
+html[data-layout=mobile] .kpi{min-width:0;flex:1;padding:10px 12px}
+html[data-layout=mobile] .kpi b{font-size:24px}
+html[data-layout=mobile] .toast{bottom:96px}
+html[data-layout=mobile] .export-bar .btn{flex:1 1 100%}
+html[data-layout=mobile] .matrix-wrap table.m{border-spacing:2px}
+html[data-layout=mobile] .matrix-wrap table.m th{padding:2px 3px;font-size:12px}
+html[data-layout=mobile] .matrix-wrap table.m td{width:30px;min-width:30px;height:32px;font-size:11.5px;border-radius:8px}
+
+@media (max-width:560px){
+  html[data-layout=desktop] .shell{grid-template-columns:1fr}
+}
+@media (max-width:420px){
+  html[data-layout=mobile] .form-grid{grid-template-columns:1fr}
+  html[data-layout=mobile] .form-grid .wide{grid-column:auto}
+  html[data-layout=mobile] .key span{font-size:12.5px}
+  html[data-layout=mobile] .key b{font-size:32px}
+}
+
+/* ---------- 列印 ---------- */
+@media print{
+  .topbar,.side,.dock,.toast,.noprint,.export-bar{display:none!important}
+  .shell{display:block}.main{padding:0;max-width:none}
+  body{background:#fff;color:#000}body::before{display:none}
+  .card{box-shadow:none;border-color:#bbb;break-inside:avoid}
+  .panel[hidden]{display:none!important}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+.tl-wrap{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:var(--surface2);padding:12px;max-width:100%}
+.tl-wrap canvas{display:block}
+#tlPage{white-space:nowrap}
+
+.dock[hidden]{display:none!important}
+.recbar .row{align-items:center;margin-bottom:8px}
+.recbar select{min-width:240px;max-width:100%}
+.recbar .note-box{margin:6px 0 0}
+.help .tbl{overflow-x:auto}
+.help table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 4px}
+.help th,.help td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+.help th{background:var(--surface2);font-weight:700}
+.help h3{margin:0 0 10px}
+.help ul,.help ol{padding-left:20px;line-height:1.75;margin:6px 0}
+.help .warn-txt{color:var(--danger);font-weight:600}
+#aiPromptBox[hidden]{display:none!important}
+#aiPromptText{min-height:260px;font-size:14px;line-height:1.6;font-family:inherit}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">跳到主要內容</a>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">F</div>
+    <div>
+      <h1>佛蘭德斯互動分析量化工具</h1>
+      <p>課堂即時記錄・矩陣指標・一鍵產生附件 Word</p>
+    </div>
+  </div>
+  <div class="tools">
+    <div class="seg" role="group" aria-label="版面模式">
+      <button type="button" data-view="auto" aria-pressed="true">自動</button>
+      <button type="button" data-view="desktop" aria-pressed="false">電腦</button>
+      <button type="button" data-view="mobile" aria-pressed="false">手機</button>
+    </div>
+    <button type="button" class="ghost-top" id="themeBtn" aria-label="切換深色或淺色模式">☾ 深色</button>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="side">
+    <nav aria-label="分析步驟">
+      <ol class="steps">
+        <li><button type="button" data-step="0"><span class="num">?</span><span><b>說明</b><small>操作與 FIAS 公式對照</small></span></button></li>
+<li><button type="button" data-step="1"><span class="num">1</span><span><b>記錄代碼</b><small>課堂即時點按或貼上</small></span></button></li>
+        <li><button type="button" data-step="2"><span class="num">2</span><span><b>查看結果</b><small>矩陣、指標與圖表</small></span></button></li>
+        <li><button type="button" data-step="3"><span class="num">3</span><span><b>填寫並下載</b><small>依附件產生 Word</small></span></button></li>
+      </ol>
+    </nav>
+    <div class="side-foot">
+      <p><b>鍵盤快速鍵</b>（第一步）</p>
+      <p><kbd>1</kbd>–<kbd>9</kbd> 記錄代碼　<kbd>0</kbd> 代表 10<br><kbd>Backspace</kbd> 撤銷上一筆</p>
+    </div>
+  </aside>
+
+  <main class="main" id="main" tabindex="-1">
+
+    <section class="panel help" data-step="0" id="panel0" aria-labelledby="h-help" hidden>
+<div class="card hero"><div class="hero-row"><div>
+<h2 id="h-help">說明：操作方式與 FIAS 公式對照</h2>
+<p>本頁說明如何使用本工具，以及 Flanders 互動分析系統（FIAS）的類別、變量與計算公式。</p>
+</div></div></div>
+
+<div class="card"><h3>一、快速開始</h3><ol>
+<li>在第一步最上方的「觀察紀錄檔案」列，建立或選擇一份紀錄（每份紀錄各自獨立）。</li>
+<li>觀察課堂時，依當下行為點按 1～10 代碼（電腦可用鍵盤 1～9 與 0）。</li>
+<li>點「查看分析結果」，到第二步檢視轉換矩陣、變量與時間線。</li>
+<li>到第三步確認授課資料與分析文字，下載 Word 或 ODT 表單。</li>
+</ol></div>
+
+<div class="card"><h3>二、畫面與版面</h3><ul>
+<li>頂部「自動／電腦／手機」可切換版面；選「自動」時依螢幕寬度判斷。手機版按鈕仍在頂部列，可隨時切回電腦版。</li>
+<li>「☾ 深色」可切換深色與淺色模式。</li>
+<li>步驟列的順序為「說明」、「1 記錄代碼」、「2 查看結果」、「3 填寫並下載」。</li>
+</ul></div>
+
+<div class="card"><h3>三、觀察紀錄檔案</h3><ul>
+<li><b>新增</b>：第一步按「＋ 新增空白紀錄」，輸入名稱後建立，並自動切換到新紀錄。</li>
+<li><b>切換</b>：在「觀察紀錄檔案」下拉選單選擇紀錄。切換前會先自動儲存目前紀錄。</li>
+<li><b>重新命名／刪除</b>：可修改名稱或刪除目前紀錄。刪除無法復原，請先匯出 .txt 備份。</li>
+<li><b>匯出目前紀錄 .txt</b>：下載代碼檔，供備份或換裝置使用。</li>
+<li><b>匯入為新紀錄</b>：選擇 .txt 或 .csv 檔，直接建立一份新紀錄（以檔名命名）。</li>
+<li><b>匯入.txt（覆寫目前紀錄）</b>：會取代目前紀錄的代碼，請謹慎使用。</li>
+<li><b>載入範例</b>：會建立「說明書範例」新紀錄，不會覆蓋你的資料。</li>
+<li><b>自動存檔</b>：資料存在本機瀏覽器。清除瀏覽器資料或換裝置後會遺失，建議定期匯出 .txt。</li>
+</ul></div>
+
+<div class="card"><h3>四、第一步：記錄代碼</h3><ul>
+<li>點按下方 10 個類別按鈕即可記錄；鍵盤 1～9 對應 1～9，0 代表第 10 類。</li>
+<li><b>撤銷</b>：按「↶ 撤銷」或鍵盤 Backspace，移除上一筆。</li>
+<li><b>清除</b>：會清除目前紀錄的所有代碼，需再按一次確認。</li>
+<li><b>貼上代碼</b>：可用空白、換行或逗號分隔，只接受 1～10；無效項目會被略過並提示。</li>
+</ul></div>
+
+<div class="card"><h3>五、第二步：查看結果</h3><ul>
+<li><b>轉換組數</b>：相鄰兩筆代碼形成的配對數，等於代碼數減 1。</li>
+<li><b>轉換矩陣</b>：列為「前一個代碼」，欄為「後一個代碼」，可下載 CSV。</li>
+<li><b>時間線標記圖</b>：每列 40 筆為一個圖形單位，每頁最多 400 筆；可翻頁、複製或下載 PNG。</li>
+<li><b>變量分析指標</b>：13 項變量與常模對照，各卡片標示「與畫面一致」或「與畫面不符」。</li>
+<li><b>進階設定</b>（第一步下方）：可調整「最顯著類別」門檻（預設 10%）與教學風格區間（預設 ±0.2）。「首尾各補一筆 10」預設關閉，與原程式畫面計算一致。</li>
+</ul></div>
+
+<div class="card"><h3>六、第三步：填寫並下載</h3><ul>
+<li>系統會依分析結果預先填入顯著類別、教學風格與推論說明，你可以任意修改。</li>
+<li>「重新產生草稿」只會覆寫你沒有手動修改過的草稿。</li>
+<li>「產生並下載 Word」或「下載 ODT」會輸出「工具7」量化分析表格式的檔案。</li>
+</ul></div>
+
+<div class="card"><h3>七、FIAS 10 類口語互動行為</h3>
+<div class="tbl"><table>
+<tr><th>代碼</th><th>類別</th><th>歸屬</th><th>操作型定義</th></tr>
+<tr><td>1</td><td>接納</td><td>間接影響（教師話語・學生驅動）</td><td>以不具威脅性的方式接納及澄清學生的態度或情感（正向或負向）。</td></tr>
+<tr><td>2</td><td>鼓勵</td><td>間接影響</td><td>稱讚或鼓勵學生的動作或行為、紓解緊張的笑話、點頭或說「嗯」「繼續」。</td></tr>
+<tr><td>3</td><td>使用</td><td>間接影響</td><td>澄清、擴大或發展學生提出的意見或想法（接受並運用學生想法）。</td></tr>
+<tr><td>4</td><td>提問</td><td>間接影響（引導）</td><td>以教師自己的想法為基礎，詢問有關內容或步驟的問題，並期待學生回答。</td></tr>
+<tr><td>5</td><td>演講</td><td>直接影響（教師主動）</td><td>就內容或步驟提供事實或見解，表達教師自己的觀念與解釋。</td></tr>
+<tr><td>6</td><td>指示</td><td>直接影響</td><td>指示、指令或命令，期望學生服從。</td></tr>
+<tr><td>7</td><td>批評</td><td>直接影響</td><td>企圖改變學生行為、責罵學生、說明為何採取某作為，或極端自我參照。</td></tr>
+<tr><td>8</td><td>被動</td><td>學生發言（教師驅動）</td><td>學生為回應教師所講的話而作答，自由表達想法受到限制。</td></tr>
+<tr><td>9</td><td>主動</td><td>學生發言（學生主動）</td><td>學生主動開啟對話、表達自己想法、提出思考性問題或超越既有架構。</td></tr>
+<tr><td>10（輸入 0）</td><td>靜止／安靜或混亂</td><td>安靜或混亂</td><td>暫時停頓、短時間安靜或混亂，以致觀察者無法瞭解師生間的溝通。</td></tr>
+</table></div>
+<p>每約 3 秒記錄一次目前的口語行為，依序形成觀察序列。</p>
+</div>
+
+<div class="card"><h3>八、13 項變量公式與常模</h3>
+<p>說明：「列」為前一個代碼，「行」為後一個代碼；「總轉換數」為代碼數減 1。以下為本工具實際採用的計算方式。</p>
+<div class="tbl"><table>
+<tr><th>變量</th><th>縮寫</th><th>本工具計算方式</th><th>常模</th></tr>
+<tr><td>教師話語比率</td><td>TT</td><td>（1～7 列合計）÷ 總轉換數</td><td>約 68%</td></tr>
+<tr><td>學生話語比率</td><td>PT</td><td>（8～9 列合計）÷ 總轉換數</td><td>約 20%</td></tr>
+<tr><td>安靜或混亂比率</td><td>SC</td><td>第 10 列合計 ÷ 總轉換數</td><td>約 11～12%</td></tr>
+<tr><td>間接／直接影響比（大寫）</td><td>I/D ratio</td><td>（1～4 列合計）÷（5～7 列合計）；觀察數 1000 次以下使用</td><td>大於 100% 偏間接</td></tr>
+<tr><td>間接／直接影響比（小寫）</td><td>i/d ratio</td><td>（1～3 列合計）÷（6～7 列合計）；觀察數 1000 次以上使用</td><td>大於 100% 偏間接</td></tr>
+<tr><td>教師話語—學生驅動比率</td><td>TRR</td><td>（1～3 列合計）÷［（1～3 列合計）＋（6～7 列合計）］</td><td>約 42%</td></tr>
+<tr><td>教師發問比率</td><td>TQR</td><td>第 4 列 ÷（第 4、5 列合計）</td><td>約 26%</td></tr>
+<tr><td>學生主動比率</td><td>PIR</td><td>第 9 列 ÷（第 8、9 列合計）</td><td>約 34%</td></tr>
+<tr><td>教師即時話語—學生驅動比率</td><td>TRR89</td><td>（8～9 列 × 1～3 行）÷［（8～9 列 × 1～3 行）＋（8～9 列 × 5～7 行）］</td><td>約 60%<br><span class="warn-txt">目前與原程式畫面數值不一致，待確認</span></td></tr>
+<tr><td>教師即時發問比率</td><td>TQR89</td><td>（8～9 列 × 第 4 行）÷（8～9 列 × 第 4、5 行）</td><td>約 44%</td></tr>
+<tr><td>內容十字區比率</td><td>CCR</td><td>［（4～5 列合計）＋（4～5 行合計）－（4～5 列 × 4～5 行）］÷ 總轉換數</td><td>約 55%</td></tr>
+<tr><td>穩定狀態區比率</td><td>SSR</td><td>對角線（同一代碼接續出現）合計 ÷ 總轉換數</td><td>約 50%</td></tr>
+<tr><td>學生穩定狀態區比率</td><td>PSSR</td><td>［（8,8）＋（9,9）］÷（第 8、9 列合計）</td><td>約 35～40%</td></tr>
+</table></div>
+</div>
+
+<div class="card"><h3>九、教學風格判定規則</h3><ul>
+<li>以 I/D ratio 的比值 R＝（1～4 列合計）÷（5～7 列合計）判定。</li>
+<li>R 大於「1＋區間」判為<b>間接教學</b>；R 小於「1－區間」判為<b>直接教學</b>；其餘判為<b>教學風格不顯著</b>。</li>
+<li>區間預設為 0.2（即 80%～120%），可在第一步「進階設定」調整。</li>
+<li>區間為本工具自訂，並非原程式規則。</li>
+</ul></div>
+
+<div class="card"><h3>十、常見問題</h3><ul>
+<li><b>第二步為什麼沒有結果？</b>至少需要 2 筆代碼才能分析。</li>
+<li><b>資料會不會消失？</b>會自動存在本機瀏覽器。清除瀏覽器資料或換裝置會遺失，請先匯出 .txt。</li>
+<li><b>要不要補首尾的 10？</b>預設不補，與原程式畫面一致；如需補上，可在進階設定勾選。</li>
+<li><b>TRR89 為什麼與原畫面不同？</b>目前的公式解讀仍在確認中，請以原程式為準。</li>
+<li><b>手機上如何切回電腦版？</b>點頂部列的「電腦」按鈕即可。</li>
+</ul></div>
+</section>
+
+<!-- ============ 步驟 1 ============ -->
+    <section class="panel" data-step="1" id="panel1" aria-labelledby="h-step1">
+<div class="card recbar">
+ <div class="row">
+  <label for="recSelect" style="font-weight:700">📁 觀察紀錄檔案</label>
+  <select id="recSelect" aria-label="選擇觀察紀錄檔案"></select>
+  <button type="button" class="btn sm primary" id="recNew">＋ 新增空白紀錄</button>
+  <button type="button" class="btn sm ghost" id="recRename">✎ 重新命名</button>
+  <button type="button" class="btn sm danger" id="recDelete">🗑 刪除紀錄</button>
+  <button type="button" class="btn sm ghost" id="recExport">⬇ 匯出目前紀錄 .txt</button>
+ </div>
+ <p class="note-box">每份紀錄各自獨立，並自動存在本機瀏覽器。切換紀錄前會先自動儲存目前內容；建議定期匯出 .txt 備份。</p>
+</div>
+      <div class="card hero">
+        <div class="hero-row">
+          <div>
+            <h2 id="h-step1">第一步　記錄課堂互動</h2>
+            <p>觀察到什麼行為，就點下對應的代碼。手機與電腦皆可操作，資料會自動暫存在這台裝置。</p>
+          </div>
+          <div class="kpis">
+            <div class="kpi"><b id="kpiCount">0</b><span>已記錄筆數</span></div>
+            <div class="kpi"><b id="kpiLast">—</b><span>最近一筆</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <h3 style="margin:0">點選代碼</h3>
+          <div class="row">
+            <button type="button" class="btn sm" id="undoBtn">↶ 撤銷</button>
+            <button type="button" class="btn sm danger" id="clearBtn">清除</button>
+          </div>
+        </div>
+        <div class="keypad" id="keypad"></div>
+        <div class="legend">
+          <span><i style="background:var(--ind)"></i>間接影響 1–4</span>
+          <span><i style="background:var(--dir)"></i>直接影響 5–7</span>
+          <span><i style="background:var(--stu)"></i>學生發言 8–9</span>
+          <span><i style="background:var(--sil)"></i>安靜／混亂 10</span>
+        </div>
+        <h3 style="margin:18px 0 0;font-size:15px">最近記錄</h3>
+        <div class="chips" id="chips" aria-live="polite"><span class="empty-hint">尚無資料，點上方代碼開始記錄。</span></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>貼上或匯入資料</h3>
+          <label class="field" for="codeText">代碼（1–10，可用空白、換行或逗號分隔）
+            <textarea id="codeText" placeholder="例如：10 10 6 10 2 4 8 5 4 9 ..." spellcheck="false"></textarea>
+          </label>
+          <p id="parseMsg" class="note-box" role="status">目前 0 筆。</p>
+          <div class="row" style="margin-top:12px">
+            <label class="btn sm ghost" style="cursor:pointer">匯入.txt（覆寫目前紀錄）<input type="file" id="codeFile" accept=".txt,.csv" hidden></label>
+ <label class="btn sm ghost" style="cursor:pointer">匯入為新紀錄<input type="file" id="codeFileNew" accept=".txt,.csv" hidden></label>
+            <button type="button" class="btn sm ghost" id="sampleBtn">載入範例（建立新紀錄）</button>
+          </div>
+        </div>
+        <details class="card">
+          <summary>進階設定</summary>
+          <div class="settings">
+            <label class="field" for="s_pct">「最顯著類別」門檻（%）
+              <input type="number" id="s_pct" min="1" max="100" step="1" value="10">
+            </label>
+            <label class="field" for="s_band">教學風格「不顯著」區間（±）
+              <input type="number" id="s_band" min="0" max="0.9" step="0.05" value="0.2">
+            </label>
+          </div>
+<label class="field" style="grid-column:1 / -1;flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="s_autopad" style="width:20px;height:20px;margin:0"> 分析時首尾各補一筆「10」（預設關閉，與原程式畫面計算一致）</label>
+
+          <p class="note-box">這兩個門檻為本工具自訂，並非原程式規則。</p>
+        </details>
+      </div>
+
+      <div class="row" style="justify-content:flex-end;margin-top:6px">
+        <button type="button" class="btn primary" data-goto="2">查看分析結果 →</button>
+      </div>
+    </section>
+
+    <!-- ============ 步驟 2 ============ -->
+    <section class="panel" data-step="2" id="panel2" aria-labelledby="h-step2" hidden>
+      <div class="card hero">
+        <div class="hero-row">
+          <div>
+            <h2 id="h-step2">第二步　分析結果</h2>
+            <p id="resHint">依目前記錄的代碼自動計算。</p>
+          </div>
+          <div class="row">
+            <button type="button" class="btn sm" id="runBtn">重新分析</button>
+            <button type="button" class="btn sm" id="csvBtn">下載矩陣 CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="r-empty" class="card">
+        <p>尚未有可分析的資料（至少需要 2 筆代碼）。</p>
+        <div class="row"><button type="button" class="btn primary" data-goto="1">← 回到第一步記錄</button></div>
+      </div>
+
+      <div id="r-body" hidden>
+        <div class="stats" id="stats"></div>
+        <div class="grid-2">
+          <div class="card bars"><h3>各類別出現次數</h3><div id="bars"></div><p class="note-box" style="margin-top:10px">深色長條為「最顯著類別」，淺色為其他類別。</p></div>
+          <div class="card"><h3>教學風格判定</h3><div id="styleBox"></div></div>
+        </div>
+<div class="card" id="tlCard">
+  <div class="toolbar">
+    <h3 style="margin:0">時間線標記圖（Time-line Coding）</h3>
+    <div class="row">
+      <button type="button" class="btn sm" id="tlPrev">◀ 上一頁</button>
+      <span id="tlPage" class="status">第 1 頁 / 共 1 頁</span>
+      <button type="button" class="btn sm" id="tlNext">下一頁 ▶</button>
+    </div>
+  </div>
+  <div class="tl-wrap"><canvas id="tlCanvas" role="img" aria-label="時間線標記圖"></canvas></div>
+  <div class="row" style="margin-top:12px">
+    <button type="button" class="btn sm" id="tlCopy">📋 複製圖片至剪貼簿</button>
+    <button type="button" class="btn sm primary" id="tlPng">⬇ 下載時間線 PNG</button>
+  </div>
+  <p class="note-box">依 FIAS 輔助軟體規格：每列 40 筆為一個圖形單位，每頁最多 400 筆（10 列）。上列（1.2、3、9）為間接教學與學生主動；中列（4）為教師提問；下列（8、5、6.7）為直接教學與學生被動；第 10 類（安靜或混亂）不標記。橫軸數字為觀察序號。</p>
+</div>
+
+        <div class="card">
+          <h3>變量分析指標</h3>
+          <div class="metrics" id="metrics"></div>
+          <p class="note-box">「與畫面一致」：依提供的公式計算，結果與原程式畫面相同；「與畫面不符」：結果與畫面數值不同，需再確認。常模為原量表的參考值。</p>
+        </div>
+        <div class="card">
+          <h3>轉換矩陣（列＝前一個代碼，欄＝後一個代碼）</h3>
+          <div class="matrix-wrap" id="matrix"></div>
+        </div>
+        <div class="row" style="justify-content:flex-end">
+          <button type="button" class="btn primary" data-goto="3">填寫表單並下載 Word →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 步驟 3 ============ -->
+    <section class="panel" data-step="3" id="panel3" aria-labelledby="h-step3" hidden>
+      <div class="card hero">
+        <div class="hero-row">
+          <div>
+            <h2 id="h-step3">第三步　填寫並下載 Word</h2>
+            <p>系統已依分析結果預先填入，您可以修改任何欄位。下載的檔案會套用附件「工具7」的版型。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>基本資料</h3>
+        <div class="form-grid">
+          <label class="field" for="f_teacher">授課教師（主導的教師）<input type="text" id="f_teacher" data-persist autocomplete="off"></label>
+          <label class="field" for="f_observer">觀課人員（認證教師）<input type="text" id="f_observer" data-persist autocomplete="off"></label>
+          <label class="field" for="f_grade">任教年級<input type="text" id="f_grade" data-persist></label>
+          <label class="field" for="f_subject">任教領域／科目<input type="text" id="f_subject" data-persist></label>
+          <label class="field" for="f_unit">教學單元<input type="text" id="f_unit" data-persist></label>
+          <label class="field" for="f_place">地點<input type="text" id="f_place" data-persist></label>
+          <label class="field" for="f_total">共幾節<input type="number" id="f_total" min="1" data-persist></label>
+          <label class="field" for="f_period">本次為第幾節<input type="number" id="f_period" min="1" data-persist></label>
+          <label class="field" for="f_date">公開授課／觀察日期<input type="date" id="f_date" data-persist></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>一、1. 最顯著的類別（可複選）</h3>
+        <div class="picks" id="salBox"></div>
+        <label class="field" for="f_other1" style="margin-top:14px">一、2. 其他<input type="text" id="f_other1" data-persist></label>
+      </div>
+
+      <div class="card">
+        <h3>二、教師教學風格（單選）</h3>
+        <div class="styles" role="radiogroup" aria-label="教學風格">
+          <label class="pick"><input type="radio" name="style" value="direct"><span><b>1. 直接教學</b></span></label>
+          <label class="pick"><input type="radio" name="style" value="indirect"><span><b>2. 間接教學</b></span></label>
+          <label class="pick"><input type="radio" name="style" value="none"><span><b>3. 教學風格不顯著</b></span></label>
+          <label class="pick"><input type="radio" name="style" value="other"><span><b>4. 其他</b></span></label>
+        </div>
+        <div class="form-grid">
+          <label class="field wide" for="t_direct">1. 直接教學　推論說明<textarea id="t_direct" data-persist></textarea></label>
+          <label class="field wide" for="t_indirect">2. 間接教學　推論說明<textarea id="t_indirect" data-persist></textarea></label>
+          <label class="field wide" for="t_none">3. 教學風格不顯著　推論說明<textarea id="t_none" data-persist></textarea></label>
+          <label class="field wide" for="t_other">4. 其他（內容）<textarea id="t_other" data-persist></textarea></label>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button type="button" class="btn sm ghost" id="redraftBtn">重新產生草稿</button>
+          <small>僅覆寫未被您手動修改的草稿。</small>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>三、最顯著類別、教師教學風格與學生學習成效之分析</h3>
+        <textarea id="t_three" data-persist style="min-height:180px"></textarea>
+        <p class="note-box">「學習成效」需由您依評量結果、作業或學生回饋補充；量化表本身只記錄課堂互動行為。</p>
+        <h3 style="margin-top:18px">四、其他</h3>
+        <textarea id="t_four" data-persist></textarea>
+      </div>
+
+      <div class="export-bar">
+        <div class="row">
+          <span id="tplStatus" class="status">範本檢查中…</span>
+          <label class="btn sm ghost" style="cursor:pointer">上傳範本 .docx<input type="file" id="tplFile" accept=".docx" hidden></label>
+        </div>
+        <div class="row">
+          <button type="button" class="btn ghost" onclick="window.print()">列印</button>
+          <button type="button" class="btn primary" id="exportBtn">產生並下載 Word</button>
+          <button type="button" class="btn primary" id="exportOdtBtn">下載 ODT</button>
+<button type="button" class="btn primary" id="aiPromptBtn">🤖 匯出AI提示詞</button>
+        </div>
+        <div id="dl" style="width:100%"></div>
+</div>
+<div id="aiPromptBox" class="card" hidden>
+ <h3 style="margin:0 0 6px">AI 提示詞（貼給 AI 進行分析與質性回饋）</h3>
+ <p class="note-box">內容已自動帶入您目前填寫的資料與量化結果。預設不含教師、觀課人員姓名與地點；如需要可勾選。請勿將含個資的內容貼到不熟悉的平台。</p>
+ <label class="field" style="flex-direction:row;align-items:center;gap:10px"><input type="checkbox" id="ai_pii" style="width:18px;height:18px;margin:0"> 包含教師、觀課人員姓名與地點</label>
+ <textarea id="aiPromptText" readonly></textarea>
+ <div class="row" style="margin-top:8px"><button type="button" class="btn sm primary" id="aiCopyBtn">📋 複製提示詞</button><small id="aiPromptCount"></small></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="dock" aria-label="上一步與下一步">
+  <button type="button" class="btn" id="prevBtn">← 上一步</button>
+  <button type="button" class="btn primary" id="nextBtn">下一步 →</button>
+</nav>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+/* ================= 常數 ================= */
+const CATS={1:{n:'接納',g:'ind'},2:{n:'鼓勵',g:'ind'},3:{n:'使用',g:'ind'},4:{n:'提問',g:'ind'},5:{n:'演講',g:'dir'},6:{n:'指示',g:'dir'},7:{n:'批評',g:'dir'},8:{n:'被動',g:'stu'},9:{n:'主動',g:'stu'},10:{n:'靜止',g:'sil'}};
+const GROUP={ind:'間接影響',dir:'直接影響',stu:'學生發言',sil:'安靜／混亂'};
+const COLOR={ind:'#2e8b5e',dir:'#d9662b',stu:'#3b6fd8',sil:'#6f7a84'};
+const STYLE={direct:'直接教學',indirect:'間接教學',none:'教學風格不顯著',other:'其他'};
+const STYLE_NO={direct:1,indirect:2,none:3,other:4};
+const SAMPLE='10 10 6 10 2 4 8 5 4 9 4 9 2 4 9 1 4 3 2 3 2 5 4 4 8 3 4 8 4 8 4 8 3 4 4 9 1 2 4 9 3 4 8 4 8 3 5 4 8 4 8 4 8 3 4 9 4 8 5 4 8 5 4 8 4 9 2 3 5 4 8 4 8 3 4 9 3 4 9 3 2 5 4 8 4 9 1 3 2 4 9 1 2 4 8 6 5 4 4 8 6 5 4 8 4 9 3 4 9 3 4 9 1 2 5 4 8 4 9 1 3 4 9 3 4 9 3 4 9 1 3 10';
+const DOCX_MIME='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const WNS='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const XMLNS='http://www.w3.org/XML/1998/namespace';
+const KEY='flanders-web-v2';
+
+/* ================= 狀態 ================= */
+const S={codes:[],settings:{salPct:10,band:0.2,autoPad:false},auto:{},last:null,step:1,view:'auto',theme:'auto'};
+let TEMPLATE=null;
+
+/* ================= 工具函式 ================= */
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const fp=x=>x==null?'—':(x*100).toFixed(2)+'%';
+const fr=r=>r===null?'—':r===Infinity?'無限大':r.toFixed(2)+'（'+(r*100).toFixed(2)+'%）';
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isGAS=()=>typeof google!=='undefined'&&!!(google.script&&google.script.run);
+const gasCall=(fn,...args)=>new Promise((ok,no)=>google.script.run.withSuccessHandler(ok).withFailureHandler(no)[fn](...args));
+const vib=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
+let toastT=null;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ================= 解析與計算 ================= */
+function parseCodes(text){
+  const codes=[];let bad=0;
+  for(const t of String(text).split(/[\s,，;；]+/).filter(Boolean)){
+    const n=Number(t);
+    if(Number.isInteger(n)&&n>=1&&n<=10) codes.push(n); else bad++;
+  }
+  return {codes,bad};
+}
+
+function analyze(codes,salPct,band){
+  const M=Array.from({length:11},()=>Array(11).fill(0));
+  for(let i=0;i+1<codes.length;i++) M[codes[i]][codes[i+1]]++;
+  const N=codes.length-1;
+  const row=Array(11).fill(0),col=Array(11).fill(0);
+  for(let i=1;i<=10;i++)for(let j=1;j<=10;j++){row[i]+=M[i][j];col[j]+=M[i][j];}
+  const sumRows=(a,b)=>{let t=0;for(let k=a;k<=b;k++)t+=row[k];return t;};
+  const sumCols=(a,b)=>{let t=0;for(let k=a;k<=b;k++)t+=col[k];return t;};
+  const cellSum=(r1,r2,c1,c2)=>{let t=0;for(let i=r1;i<=r2;i++)for(let j=c1;j<=c2;j++)t+=M[i][j];return t;};
+  const dv=(a,b)=>b>0?a/b:null;
+  const I=sumRows(1,4),D=sumRows(5,7),T=sumRows(1,7),P=sumRows(8,9),Q=row[10];
+  const ratio=D>0?I/D:(I>0?Infinity:null);
+  const diag=(()=>{let t=0;for(let k=1;k<=10;k++)t+=M[k][k];return t;})();
+  const m={
+    TT:dv(T,N),                                   // Σ Row(1–7) ÷ Total
+    PT:dv(P,N),                                   // Σ Row(8–9) ÷ Total
+    SC:dv(Q,N),                                   // Row(10) ÷ Total
+    ID:ratio,                                     // Σ Row(1–4) ÷ Σ Row(5–7)
+    iD:dv(sumRows(1,3),sumRows(6,7)),             // Σ Row(1–3) ÷ Σ Row(6–7)
+    TRR:dv(sumRows(1,3),sumRows(1,3)+sumRows(6,7)),// Σ Row(1–3) ÷ [Σ Row(1–3)+Σ Row(6–7)]
+    TQR:dv(row[4],row[4]+row[5]),                 // Row(4) ÷ Σ Row(4–5)
+    PIR:dv(row[9],row[8]+row[9]),                 // Row(9) ÷ Σ Row(8–9)
+    TRR89:dv(cellSum(8,9,1,3),cellSum(8,9,1,3)+cellSum(8,9,6,7)), // [Σcell(8–9,1–3)] ÷ [Σcell(8–9,1–3)+Σcell(8–9,6–7)]
+    TQR89:dv(cellSum(8,9,4,4),cellSum(8,9,4,5)),  // Σcell(8–9,4) ÷ Σcell(8–9,4–5)
+    CCR:dv(sumRows(4,5)+sumCols(4,5)-cellSum(4,5,4,5),N), // [Σ Row(4–5)+Σ Col(4–5)−Σcell(4–5,4–5)] ÷ Total
+    SSR:dv(diag,N),                               // Σcell(i=j) ÷ Total
+    PSSR:dv(M[8][8]+M[9][9],P)                    // [cell(8,8)+cell(9,9)] ÷ Σ Row(8–9)
+  };
+  let top=1;for(let j=2;j<=10;j++)if(col[j]>col[top])top=j;
+  const salient=[];
+  for(let j=1;j<=10;j++) if(j===top||(N>0&&col[j]/N*100>=salPct)) salient.push(j);
+  let style='none';
+  if(ratio!==null){ if(ratio>1+band) style='indirect'; else if(ratio<1-band) style='direct'; }
+  return {M,row,col,N,I,D,T,P,Q,m,salient,style,band,codeCount:codes.length};
+}
+
+function drafts(a){
+  const tt=fp(a.m.TT),pt=fp(a.m.PT),base=`I/D 比為 ${fr(a.m.ID)}，間接影響 ${a.I} 次、直接影響 ${a.D} 次，`;
+  const sal=a.salient.map(j=>CATS[j].n+'（'+j+'）').join('、');
+  return {
+    direct:`${base}比值偏低，教師多以演講、指示、批評等直接方式主導課堂；教師說話占 ${tt}，學生說話占 ${pt}。`,
+    indirect:`${base}比值偏高，教師多以接納、鼓勵、使用學生想法與提問等間接方式引導課堂；教師說話占 ${tt}，學生說話占 ${pt}。`,
+    none:`${base}比值落在 1 ± ${a.band} 的範圍內，直接與間接教學行為相當；教師說話占 ${tt}，學生說話占 ${pt}。`,
+    three:`一、最顯著類別：${sal}。\n二、教師教學風格：${STYLE[a.style]}（依 I/D 比判定）。\n三、學生參與：學生說話（8、9）占 ${pt}，其中主動發言（9）占學生說話（8、9）的 ${fp(a.m.PIR)}；提問（4）占全部互動的 ${fp(a.col[4]/a.N)}；提問占提問與演講（4、5）合計的 ${fp(a.m.TQR)}。\n四、學習成效：本量化表只記錄課堂互動行為，未包含學習成效資料。請依評量結果、作業表現或學生回饋補充，並與上述類別與風格比對。`
+  };
+}
+
+/* ================= 步驟一：記錄 ================= */
+function push(c){
+  if(S.codes.length>=2000){toast('已達 2000 筆上限');return;}
+  S.codes.push(c);vib(12);afterChange();flash(c);
+}
+function undo(){
+  if(!S.codes.length){toast('沒有可撤銷的代碼');return;}
+  const c=S.codes.pop();afterChange();toast(`已撤銷「${c} ${CATS[c].n}」`);
+}
+let clearArmed=null;
+function clearAll(){
+  const btn=$('#clearBtn');
+  if(!S.codes.length){toast('目前沒有資料');return;}
+  if(!clearArmed){
+    btn.textContent='再按一次確認';btn.classList.add('danger');
+    clearArmed=setTimeout(()=>{clearArmed=null;btn.textContent='清除';},3000);return;
+  }
+  clearTimeout(clearArmed);clearArmed=null;btn.textContent='清除';
+  S.codes=[];afterChange();toast('已清除所有代碼');
+}
+function flash(c){
+  const el=document.querySelector(`.key[data-code="${c}"]`);
+  if(!el)return;el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),120);
+}
+function afterChange(){
+  S.last=null;renderKeypadState();save();
+}
+function renderKeypadState(){
+  const n=S.codes.length;
+  $('#kpiCount').textContent=n;
+  $('#kpiLast').textContent=n?CATS[S.codes[n-1]].n:'—';
+  const ta=$('#codeText');
+  if(document.activeElement!==ta) ta.value=S.codes.join(' ');
+  const tail=S.codes.slice(-80);
+  $('#chips').innerHTML=tail.length?tail.map(c=>`<span class="chip ${CATS[c].g}" title="${c} ${CATS[c].n}">${c}</span>`).join(''):'<span class="empty-hint">尚無資料，點上方代碼開始記錄。</span>';
+  $('#parseMsg').textContent=`目前 ${n} 筆代碼。`;
+}
+function setFromText(text){
+  const {codes,bad}=parseCodes(text);
+  S.codes=codes;S.last=null;
+  $('#parseMsg').textContent=`目前 ${codes.length} 筆代碼`+(bad?`；已略過 ${bad} 個無效項目（僅接受 1–10）。`:'。');
+  $('#kpiCount').textContent=codes.length;
+  $('#kpiLast').textContent=codes.length?CATS[codes[codes.length-1]].n:'—';
+  $('#chips').innerHTML=codes.slice(-80).map(c=>`<span class="chip ${CATS[c].g}" title="${c} ${CATS[c].n}">${c}</span>`).join('')||'<span class="empty-hint">尚無資料。</span>';
+  save();
+}
+
+/* ================= 步驟二：結果 ================= */
+const METRICS=[
+ {name:'TT 教師說話',f:a=>fp(a.m.TT),tag:'ok',t:'與畫面一致',note:'（1–7 列合計）÷ 總轉換數；常模約 68%'},
+ {name:'PT 學生說話',f:a=>fp(a.m.PT),tag:'ok',t:'與畫面一致',note:'（8–9 列合計）÷ 總轉換數；常模約 20%'},
+ {name:'SC 安靜／混亂',f:a=>fp(a.m.SC),tag:'ok',t:'與畫面一致',note:'第 10 列 ÷ 總轉換數；常模約 11–12%'},
+ {name:'I/D ratio',f:a=>fr(a.m.ID),tag:'ok',t:'與畫面一致',note:'（1–4 列）÷（5–7 列）；觀察次數少於 1000 次時使用'},
+ {name:'TRR 教師回應學生',f:a=>fp(a.m.TRR),tag:'ok',t:'與畫面一致',note:'（1–3 列）÷（1–3 列＋6–7 列）；常模約 42%'},
+ {name:'TQR 教師發問',f:a=>fp(a.m.TQR),tag:'ok',t:'與畫面一致',note:'第 4 列 ÷（第 4、5 列合計）；常模約 26%'},
+ {name:'PIR 學生主動',f:a=>fp(a.m.PIR),tag:'ok',t:'與畫面一致',note:'第 9 列 ÷（第 8、9 列合計）；常模約 34%'},
+ {name:'i/d ratio（小寫）',f:a=>fp(a.m.iD),tag:'ok',t:'與畫面一致',note:'（1–3 列）÷（6–7 列）；觀察次數大於 1000 次時使用，本次僅供參考'},
+ {name:'TRR89 即時回應',f:a=>fp(a.m.TRR89),tag:'warn',t:'與畫面不符',note:'畫面數值為 91.30%，與依公式計算的結果不同，待確認。公式：（8–9 列×1–3 行）÷（8–9 列×1–3 行＋8–9 列×6–7 行）；常模約 60%'},
+ {name:'TQR89 即時發問',f:a=>fp(a.m.TQR89),tag:'ok',t:'與畫面一致',note:'（8–9 列×4 行）÷（8–9 列×4–5 行）；常模約 44%'},
+ {name:'CCR 內容十字區',f:a=>fp(a.m.CCR),tag:'ok',t:'與畫面一致',note:'（4–5 列合計＋4–5 行合計－4–5 列×4–5 行）÷ 總轉換數；常模約 55%'},
+ {name:'SSR 穩定狀態區',f:a=>fp(a.m.SSR),tag:'ok',t:'與畫面一致',note:'對角線（i＝j）合計 ÷ 總轉換數；常模約 50%'},
+ {name:'PSSR 學生穩定狀態',f:a=>fp(a.m.PSSR),tag:'ok',t:'與畫面一致',note:'（8,8）＋（9,9）÷ 第 8、9 列合計；常模約 35–40%'}
+];
+
+function runAnalysis(silent){
+  if(S.codes.length<2){if(!silent)toast('至少需要 2 筆代碼');showEmpty(true);return false;}
+  const base=S.settings.autoPad&&S.codes.length?[10,...S.codes,10]:S.codes;
+  S.last=analyze(base,S.settings.salPct,S.settings.band);
+  renderResults(S.last);prefillForm(S.last);save();
+  return true;
+}
+function showEmpty(empty){$('#r-empty').hidden=!empty;$('#r-body').hidden=empty;}
+
+function renderResults(a){
+  showEmpty(false);
+  renderTimeline();
+  $('#resHint').textContent=`共 ${a.codeCount} 筆代碼、${a.N} 組相鄰轉換。`;
+  $('#stats').innerHTML=[
+    ['轉換組數',a.N,''],
+    ['教師說話 TT',fp(a.m.TT),''],
+    ['學生說話 PT',fp(a.m.PT),''],
+    ['I/D ratio',fr(a.m.ID),''],
+    ['教學風格',STYLE[a.style],'']
+  ].map(x=>`<div class="stat"><small>${x[0]}</small><b>${esc(x[1])}</b></div>`).join('');
+  $('#metrics').innerHTML=METRICS.map(m=>{
+    const v=m.f?m.f(a):'尚未計算';
+    return `<div class="metric ${m.tag==='pending'?'pending':''}"><header><b>${esc(m.name)}</b><span class="tag ${m.tag}">${m.t}</span></header><div class="val">${esc(v)}</div><p>${esc(m.note)}</p></div>`;
+  }).join('');
+  $('#bars').innerHTML=barSVG(a);
+  $('#styleBox').innerHTML=`<div class="style-card"><small>依 I/D ratio 判定（本工具規則）</small><br><b>${STYLE[a.style]}</b><p class="muted" style="margin-top:8px">判定門檻：I/D &gt; ${(1+a.band).toFixed(2)} 為間接；I/D &lt; ${(1-a.band).toFixed(2)} 為直接；其餘為不顯著。門檻可在第一步的進階設定調整。</p></div><p class="note-box">最顯著類別：${a.salient.map(j=>CATS[j].n).join('、')}</p>`;
+  $('#matrix').innerHTML=matrixHTML(a);
+}
+
+function barSVG(a){
+  const W=640,H=290,padX=30,base=236,top=24;
+  const max=Math.max(1,...a.col.slice(1));
+  const bw=(W-padX*2)/10;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="各類別出現次數長條圖">`;
+  s+=`<line x1="${padX}" x2="${W-padX}" y1="${base}" y2="${base}" stroke="currentColor" opacity=".25"/>`;
+  for(let j=1;j<=10;j++){
+    const v=a.col[j],h=Math.max(2,(v/max)*(base-top-10)),x=padX+(j-1)*bw+bw*0.16,w=bw*0.68,y=base-h;
+    const on=a.salient.includes(j);
+    s+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="7" fill="${COLOR[CATS[j].g]}" opacity="${on?1:.42}"><title>${j} ${CATS[j].n}：${v} 次（${fp(v/a.N)}）</title></rect>`;
+    s+=`<text x="${(x+w/2).toFixed(1)}" y="${(y-7).toFixed(1)}" text-anchor="middle" class="bv">${v}</text>`;
+    s+=`<text x="${(x+w/2).toFixed(1)}" y="${base+20}" text-anchor="middle" class="bl">${j}</text>`;
+    s+=`<text x="${(x+w/2).toFixed(1)}" y="${base+38}" text-anchor="middle" class="bn">${CATS[j].n}</text>`;
+  }
+  return s+'</svg>';
+}
+
+function matrixHTML(a){
+  const max=Math.max(1,...a.M.flat());
+  let h='<table class="m"><thead><tr><th scope="col">前 ↓ ／ 後 →</th>';
+  for(let j=1;j<=10;j++)h+=`<th scope="col" title="${CATS[j].n}">${j}</th>`;
+  h+='<th scope="col">合計</th></tr></thead><tbody>';
+  for(let i=1;i<=10;i++){
+    h+=`<tr><th scope="row" title="${CATS[i].n}">${i}</th>`;
+    for(let j=1;j<=10;j++){
+      const v=a.M[i][j],al=v?0.14+0.86*v/max:0;
+      h+=`<td style="background:rgba(46,139,94,${al.toFixed(3)});color:${al>0.6?'#fff':'var(--ink)'}" title="${i}→${j}：${v} 次">${v||''}</td>`;
+    }
+    h+=`<td class="tot">${a.row[i]}</td></tr>`;
+  }
+  h+='<tr><th scope="row">合計</th>';
+  for(let j=1;j<=10;j++)h+=`<td class="tot">${a.col[j]}</td>`;
+  h+=`<td class="tot">${a.N}</td></tr></tbody></table>`;
+  return h;
+}
+
+function matrixCSV(a){
+  const rows=[['前\\後',...Array.from({length:10},(_,k)=>k+1),'合計']];
+  for(let i=1;i<=10;i++)rows.push([i,...Array.from({length:10},(_,k)=>a.M[i][k+1]),a.row[i]]);
+  rows.push(['合計',...Array.from({length:10},(_,k)=>a.col[k+1]),a.N]);
+  return rows.map(r=>r.join(',')).join('\r\n');
+}
+
+/* ================= 步驟三：表單 ================= */
+function prefillForm(a){
+  $$('.sal').forEach(e=>e.checked=a.salient.includes(+e.value));
+  const r=document.querySelector(`input[name=style][value="${a.style}"]`);
+  if(r)r.checked=true;
+  const d=drafts(a);
+  for(const k of ['direct','indirect','none']){
+    const el=$('#t_'+k);
+    const isAuto=el.value.trim()===''||el.value===S.auto[k];
+    if(isAuto) el.value=(k===a.style)?d[k]:'';
+    S.auto[k]=el.value;
+  }
+  const t3=$('#t_three');
+  if(t3.value.trim()===''||t3.value===S.auto.three) t3.value=d.three;
+  S.auto.three=t3.value;
+  save();
+}
+function redraft(){
+  if(!S.last){toast('請先完成分析');return;}
+  const a=S.last,d=drafts(a);
+  for(const k of ['direct','indirect','none']){
+    const el=$('#t_'+k);el.value=(k===a.style)?d[k]:'';S.auto[k]=el.value;
+  }
+  const t3=$('#t_three');t3.value=d.three;S.auto.three=t3.value;
+  save();toast('已重新產生草稿');
+}
+
+function collectForm(){
+  const v=id=>($('#'+id)?.value||'').trim();
+  const dt=v('f_date');let ds='';
+  if(dt){const [y,m,d]=dt.split('-');ds=`${y}年${+m}月${+d}日`;}
+  return {
+    teacher:v('f_teacher'),grade:v('f_grade'),subject:v('f_subject'),observer:v('f_observer'),unit:v('f_unit'),
+    total:v('f_total'),period:v('f_period'),date:ds,place:v('f_place'),other1:v('f_other1'),
+    salient:$$('.sal:checked').map(e=>+e.value),
+    style:(document.querySelector('input[name=style]:checked')||{}).value||'',
+    texts:{direct:v('t_direct'),indirect:v('t_indirect'),none:v('t_none'),other:v('t_other')},
+    three:v('t_three'),four:v('t_four')
+  };
+}
+
+/* ================= 產生 Word（依附件範本） ================= */
+/* ===== 附錄移植（參考 fias_web_v3.html 的 downloadTool7Docx）：矩陣、變量、時間線、原始觀察記錄 ===== */
+const APX_FONT='"Microsoft JhengHei","Noto Sans TC","PingFang TC",sans-serif';
+function apxEsc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function apxP(text,o={}){
+ const sz=o.sz||24;
+ const rpr='<w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="標楷體"/>'+(o.b?'<w:b/>':'')+'<w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/></w:rPr>';
+ const before=(o.before===undefined?0:o.before), after=(o.after===undefined?80:o.after);
+ const ppr='<w:pPr>'+(o.keep?'<w:keepNext/>':'')+(o.pbb?'<w:pageBreakBefore/>':'')+'<w:spacing w:before="'+before+'" w:after="'+after+'" w:line="'+(o.line||300)+'" w:lineRule="auto"/><w:jc w:val="'+(o.align||'left')+'"/></w:pPr>';
+ const runs=String(text??'').split('\n').map(l=>'<w:r>'+rpr+'<w:t xml:space="preserve">'+apxEsc(l)+'</w:t></w:r>').join('<w:r><w:br/></w:r>');
+ return '<w:p>'+ppr+runs+'</w:p>';
+}
+function apxImgP(relId,docPrId,name,wPx,hPx,cm){
+ cm=cm||14.5;
+ let cx=Math.round(cm*360000); let cy=Math.round(cx*(hPx/Math.max(1,wPx))); const MAXY=Math.round(23*360000); if(cy>MAXY){cy=MAXY;cx=Math.round(cy*(wPx/Math.max(1,hPx)));}
+ return '<w:p><w:pPr><w:spacing w:before="60" w:after="120"/><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="'+docPrId+'" name="'+apxEsc(name)+'"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="'+docPrId+'" name="'+apxEsc(name)+'"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+relId+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';
+}
+function apxPngBytes(cv){
+ const b64=cv.toDataURL('image/png').split(',')[1];const bin=atob(b64);const out=new Uint8Array(bin.length);
+ for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);
+ return out;
+}
+
+/* 10×10 矩陣圖（與畫面矩陣一致，數值來自 analyze 結果） */
+function apxMatrixCanvas(a){
+ const N=a.N, cw0=96, cwC=78, cwL=112, mx=24, my=64, rh=52;
+ const W=mx*2+cw0+cwC*10+cwL, H=my+14*rh+24;
+ const cv=document.createElement('canvas'); cv.width=W*2; cv.height=H*2;
+ const ctx=cv.getContext('2d'); ctx.scale(2,2);
+ ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#2B302C'; ctx.font='bold 20px '+APX_FONT; ctx.textAlign='left'; ctx.textBaseline='middle';
+ ctx.fillText('10×10 互動分析矩陣（列＝前一代碼，欄＝後一代碼；有效數對 '+N+' 對）',mx,28);
+ const cell=(x,y,w,h,t,o)=>{o=o||{};ctx.fillStyle=o.bg||'#FFFFFF';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#5C635E';ctx.lineWidth=1.2;ctx.strokeRect(x,y,w,h);ctx.fillStyle=o.fg||'#2B302C';ctx.font=(o.b?'bold ':'')+(o.fs||17)+'px '+APX_FONT;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(t===undefined||t===null?'':t),x+w/2,y+h/2);};
+ const wOf=i=>i===0?cw0:(i===11?cwL:cwC);
+ let x=mx;
+ ['類別','1','2','3','4','5','6','7','8','9','10','列合計'].forEach((h,i)=>{cell(x,my,wOf(i),rh,h,{bg:'#2C4C3B',fg:'#FFFFFF',b:true,fs:16});x+=wOf(i);});
+ for(let i=0;i<10;i++){
+  const y=my+(i+1)*rh; x=mx;
+  cell(x,y,cw0,rh,String(i+1),{bg:'#EEF3F0',fg:'#2C4C3B',b:true}); x+=cw0;
+  for(let j=0;j<10;j++){const v=a.M[i+1][j+1];const d=i===j;cell(x,y,cwC,rh,v,{bg:d?'#FDF6F0':'#FFFFFF',fg:d?'#A8551E':'#2B302C',b:d||v>0});x+=cwC;}
+  cell(x,y,cwL,rh,a.row[i+1],{bg:'#F8F9F7',b:true});
+ }
+ const pct=v=>N>0?fp(v/N):'—';
+ let y=my+11*rh; x=mx;
+ cell(x,y,cw0,rh,'座標數總和',{bg:'#EEF3F0',fg:'#2C4C3B',b:true,fs:14}); x+=cw0;
+ for(let j=0;j<10;j++){cell(x,y,cwC,rh,a.col[j+1],{bg:'#F8F9F7',b:true});x+=cwC;}
+ cell(x,y,cwL,rh,N,{bg:'#EEF3F0',fg:'#2C4C3B',b:true});
+ y=my+12*rh; x=mx;
+ cell(x,y,cw0,rh,'比例 %',{bg:'#EEF3F0',fg:'#2C4C3B',b:true,fs:15}); x+=cw0;
+ for(let j=0;j<10;j++){cell(x,y,cwC,rh,pct(a.col[j+1]),{bg:'#F8F9F7',b:true,fs:15});x+=cwC;}
+ cell(x,y,cwL,rh,N>0?'100%':'—',{bg:'#EEF3F0',fg:'#2C4C3B',b:true,fs:15});
+ y=my+13*rh; x=mx;
+ cell(x,y,cw0,rh,'群組比例',{bg:'#EEF3F0',fg:'#2C4C3B',b:true,fs:14}); x+=cw0;
+ const grp=(label,val,span)=>{const w=cwC*span;cell(x,y,w,rh,label+' '+pct(val),{bg:'#EEF3F0',fg:'#2C4C3B',b:true,fs:15});x+=w;};
+ grp('間接1–4',a.I,4); grp('直接5–7',a.D,3); grp('學生8–9',a.P,2);
+ cell(x,y,cwC,rh,pct(a.Q),{bg:'#EEF3F0',fg:'#2C4C3B',b:true,fs:14}); x+=cwC;
+ cell(x,y,cwL,rh,'',{bg:'#EEF3F0'});
+ return cv;
+}
+
+/* 13 項變量表 */
+function apxVarsCanvas(a){
+ const cols=[430,230,300], pad=24, rh=46, my=64;
+ const W=cols.reduce((s,v)=>s+v,0)+pad*2;
+ const rows=METRICS.length; const H=my+(rows+1)*rh+80;
+ const cv=document.createElement('canvas'); cv.width=W*2; cv.height=H*2;
+ const ctx=cv.getContext('2d'); ctx.scale(2,2);
+ ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#2B302C'; ctx.font='bold 20px '+APX_FONT; ctx.textAlign='left'; ctx.textBaseline='middle';
+ ctx.fillText('13 項變量分析（依 Flanders 計算公式；常模為參考值）',pad,28);
+ const drawRow=(y,texts,o)=>{
+  let x=pad;
+  texts.forEach((t,i)=>{
+   const w=cols[i];
+   ctx.fillStyle=o.bg;ctx.fillRect(x,y,w,rh);
+   ctx.strokeStyle='#5C635E';ctx.lineWidth=1.2;ctx.strokeRect(x,y,w,rh);
+   ctx.fillStyle=o.fg||'#2B302C';ctx.font=(o.b?'bold ':'')+(o.fs||17)+'px '+APX_FONT;
+   if(i===0){ctx.textAlign='left';ctx.fillText(String(t),x+12,y+rh/2);}
+   else{ctx.textAlign='center';ctx.fillText(String(t),x+w/2,y+rh/2);}
+   x+=w;
+  });
+ };
+ drawRow(my,['變量名稱','計算結果','常模參考'],{bg:'#2C4C3B',fg:'#FFFFFF',b:true,fs:17});
+ METRICS.forEach((m,k)=>{
+  const val=m.f?m.f(a):'—';
+  const norm=((m.note||'').match(/常模約[^；。]*/)||['—'])[0];
+  const name=m.name+(m.tag==='warn'?' *':'');
+  drawRow(my+(k+1)*rh,[name,val,norm],{bg:k%2===1?'#F8F9F7':'#FFFFFF',fs:17,b:false});
+ });
+ ctx.fillStyle='#5C635E'; ctx.font='15px '+APX_FONT; ctx.textAlign='left'; ctx.textBaseline='middle';
+ ctx.fillText('* TRR89 畫面數值與公式計算結果不一致，標示為待確認，請勿作為結論依據。',pad,my+(rows+1)*rh+26);
+ ctx.fillText('常模依 Flanders(1970) 原始研究，僅供比較，不代表教學的優劣。',pad,my+(rows+1)*rh+52);
+ return cv;
+}
+
+/* 時間線標記圖（每列為一類別，每格 3 秒；第 10 類獨立一列） */
+function apxTimelineCanvas(seq,startIdx,title,totalN){
+ const cols=40, cellW=20, cellH=18, leftM=64, rightM=24, topM=52, gap=34;
+ const rowsDef=[{lab:'1·2',cats:[1,2]},{lab:'3',cats:[3]},{lab:'9',cats:[9]},{lab:'4',cats:[4]},{lab:'8',cats:[8]},{lab:'5',cats:[5]},{lab:'6·7',cats:[6,7]},{lab:'10',cats:[10]}];
+ const R=rowsDef.length; const rowOf={};
+ rowsDef.forEach((r,ri)=>r.cats.forEach(c=>{rowOf[c]=ri;}));
+ const strips=Math.max(1,Math.ceil(seq.length/cols)); const stripH=R*cellH;
+ const W=leftM+cols*cellW+rightM; const H=topM+strips*(stripH+gap)+8;
+ const cv=document.createElement('canvas'); cv.width=W*2; cv.height=H*2;
+ const ctx=cv.getContext('2d'); ctx.scale(2,2);
+ ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#2B302C'; ctx.font='bold 16px '+APX_FONT; ctx.textAlign='left'; ctx.textBaseline='middle';
+ ctx.fillText(title,20,24);
+ for(let s=0;s<strips;s++){
+  const y0=topM+s*(stripH+gap); const slice=seq.slice(s*cols,(s+1)*cols);
+  ctx.fillStyle='#2B302C'; ctx.font='bold 13px '+APX_FONT; ctx.textAlign='right'; ctx.textBaseline='middle';
+  rowsDef.forEach((r,ri)=>ctx.fillText(r.lab,leftM-8,y0+ri*cellH+cellH/2));
+  for(let c=0;c<slice.length;c++){
+   const gi=startIdx+s*cols+c; const x=leftM+c*cellW; const fillRow=rowOf[slice[c]];
+   const isPad=!!totalN&&(gi===0||gi===totalN-1);
+   for(let ri=0;ri<R;ri++){
+    const y=y0+ri*cellH;
+    if(ri===fillRow){ctx.fillStyle=isPad?'#B5BAB7':'#2C4C3B';ctx.fillRect(x,y,cellW,cellH);}
+    ctx.strokeStyle='#8A918C';ctx.lineWidth=1;ctx.strokeRect(x,y,cellW,cellH);
+   }
+  }
+  ctx.font='12px '+APX_FONT; ctx.fillStyle='#5C635E'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(let c=0;c<slice.length;c++){
+   const g=startIdx+s*cols+c+1;
+   if(c===0||g%5===0) ctx.fillText(String(g),leftM+c*cellW+cellW/2,y0+stripH+12);
+  }
+ }
+ return cv;
+}
+
+/* 原始觀察記錄明細表（每列 10 格，格內為序號與類別） */
+function apxRawTable(base,autoPad){
+ const cols=10, cw=830; const n=base.length; const rowsXml=[];
+ for(let i=0;i<n;i+=cols){
+  let cells='';
+  for(let c=0;c<cols;c++){
+   const idx=i+c;
+   if(idx<n){
+    const v=base[idx]; const pad=!!autoPad&&(idx===0||idx===n-1);
+    const nm=CATS[v]?CATS[v].n:'?';
+    const shd=pad?'<w:shd w:val="clear" w:color="auto" w:fill="E3E3E3"/>':'';
+    cells+='<w:tc><w:tcPr><w:tcW w:w="'+cw+'" w:type="dxa"/>'+shd+'<w:vAlign w:val="center"/></w:tcPr>'+apxP('#'+(idx+1)+'\n'+v+' '+nm+(pad?'(緩衝)':''),{align:'center',sz:16,line:240,after:0})+'</w:tc>';
+   }else{
+    cells+='<w:tc><w:tcPr><w:tcW w:w="'+cw+'" w:type="dxa"/></w:tcPr>'+apxP('',{sz:16,after:0})+'</w:tc>';
+   }
+  }
+  rowsXml.push('<w:tr><w:trPr><w:cantSplit/></w:trPr>'+cells+'</w:tr>');
+ }
+ const bd=(t,sz)=>'<w:'+t+' w:val="single" w:sz="'+sz+'" w:space="0" w:color="808080"/>';
+ const grid=('<w:gridCol w:w="'+cw+'"/>').repeat(cols);
+ return '<w:tbl><w:tblPr><w:tblW w:w="'+(cw*cols)+'" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>'+bd('top',6)+bd('left',6)+bd('bottom',6)+bd('right',6)+bd('insideH',4)+bd('insideV',4)+'</w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>'+grid+'</w:tblGrid>'+rowsXml.join('')+'</w:tbl>';
+}
+
+/* 組出附錄 XML、圖片與關聯 */
+function apxBuildAppendix(app){
+ const a=app.a, base=app.base, autoPad=!!app.autoPad, n=base.length;
+ const core=autoPad?Math.max(0,n-2):n;
+ const media=[], rels=[], parts=[]; let pid=9100;
+ const img=(cv,name,key,cm)=>{
+  const target='media/appx_'+key+'.png';
+  media.push({path:'word/'+target,bytes:apxPngBytes(cv)});
+  const rid='rIdAppx_'+key; rels.push({id:rid,target});
+  parts.push(apxImgP(rid,++pid,name,cv.width,cv.height,cm));
+ };
+ const add=x=>parts.push(x);
+ 
+ add(apxP('附錄：須一併檢附「佛蘭德斯(Flanders)互動分析法」之原始觀察記錄',{b:true,sz:30,after:120,line:340}));
+ add(apxP('觀察序列：核心代碼 '+core+' 筆（約 '+(core*3)+' 秒）｜有效分析序列 '+n+' 筆（'+(autoPad?'已於首尾各補一筆 10 緩衝':'原始序列，未補緩衝')+'）｜相鄰轉換組數 '+a.N,{sz:20,after:60}));
+ add(apxP('教學風格判定：'+STYLE[a.style]+'｜I/D ratio：'+fr(a.m.ID)+'｜判定區間 ±'+a.band,{sz:20,after:160}));
+ add(apxP('一、10×10 互動分析矩陣',{b:true,sz:28,keep:true,before:60,after:60}));
+ img(apxMatrixCanvas(a),'10x10互動分析矩陣.png','matrix',11.5);
+ add(apxP('二、13 項變量分析',{b:true,sz:28,keep:true,before:120,after:60}));
+ img(apxVarsCanvas(a),'13項變量分析.png','vars',11.5);
+ add(apxP('三、時間線標記圖 (Time-line Coding)',{b:true,sz:28,keep:true,before:120,after:60}));
+ add(apxP('每一小格代表 3 秒；列由上至下依序為 1·2、3、9、4、8、5、6·7、10（安靜或混亂）。灰色格為首尾緩衝。',{sz:18,after:100}));
+ const CH=800, chunks=Math.max(1,Math.ceil(n/CH));
+ for(let c=0;c<chunks;c++){
+  const seg=base.slice(c*CH,(c+1)*CH);
+  const first=c*CH+1, last=c*CH+seg.length;
+  add(apxP('第 '+(c+1)+'／'+chunks+' 段（第 '+first+'–'+last+' 筆）',{sz:18,after:40,keep:true}));
+  img(apxTimelineCanvas(seg,c*CH,'Time-line Coding｜第 '+first+'–'+last+' 筆（每格 3 秒）',autoPad?n:0),'時間線標記圖_'+(c+1)+'.png','tl'+c,11.5);
+ }
+ add(apxP('四、原始觀察記錄明細表',{b:true,sz:28,keep:true,before:120,after:60}));
+ add(apxP('每一格為「#序號 ／ 類別代碼 類別名稱」，依觀察順序排列；灰底為首尾緩衝。',{sz:18,after:100}));
+ add(apxRawTable(base,autoPad));
+ add(apxP('',{after:0}));
+ add(apxP('類別對照：'+[1,2,3,4,5,6,7,8,9,10].map(k=>k+' '+CATS[k].n).join('、')+'。（手動輸入或 Excel 匯入時第 10 類以 0 記錄，本表統一以 10 顯示。）',{sz:18,before:80}));
+ return {xml:parts.join(''),media,rels};
+}
+
+/* 輸入資料：與分析畫面相同的序列（含首尾緩衝設定），不寫入 S.last、不改動表單 */
+function apxInput(){
+ const on=!!(S.settings.autoPad&&S.codes.length);
+ const base=on?[10,...S.codes,10]:S.codes.slice();
+ const a=analyze(base,S.settings.salPct,S.settings.band);
+ return {a,base,autoPad:on};
+}
+
+
+async function makeDocx(buf,f,app){
+  const zip=await JSZip.loadAsync(buf);
+  const xml=await zip.file('word/document.xml').async('string');
+  const doc=new DOMParser().parseFromString(xml,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error('範本 XML 解析失敗');
+  const mk=n=>doc.createElementNS(WNS,'w:'+n);
+  const kids=(el,n)=>Array.from(el.childNodes).filter(c=>c.nodeType===1&&c.localName===n&&c.namespaceURI===WNS);
+  const desc=(el,n)=>Array.from(el.getElementsByTagNameNS(WNS,n));
+  const defRpr=()=>{const r=mk('rPr'),fo=mk('rFonts'),sz=mk('sz');
+    fo.setAttributeNS(WNS,'w:eastAsia','標楷體');sz.setAttributeNS(WNS,'w:val','24');r.appendChild(fo);r.appendChild(sz);return r;};
+  const runOf=(text,rp)=>{const r=mk('r');r.appendChild(rp?rp.cloneNode(true):defRpr());
+    const t=mk('t');t.setAttributeNS(XMLNS,'xml:space','preserve');t.textContent=text;r.appendChild(t);return r;};
+  const rprOf=p=>{for(const r of desc(p,'r')){const x=kids(r,'rPr')[0];if(x)return x;}return null;};
+  const addRun=(p,text)=>{if(text)p.appendChild(runOf(text,rprOf(p)));};
+  const setVal=(tc,text)=>{const p=kids(tc,'p')[0];kids(p,'r').forEach(r=>p.removeChild(r));if(text)p.appendChild(runOf(text,null));};
+  const tick=(tc,ids)=>{for(const t of desc(tc,'t')){const m=/^□(\d+)(\.?)$/.exec(t.textContent);
+    if(m&&ids.includes(+m[1]))t.textContent='■'+m[1]+m[2];}};
+  const appendLines=(tc,text)=>{
+    const base=kids(tc,'p').slice(-1)[0];
+    for(const line of text.split(/\n/)){
+      if(!line.trim())continue;
+      const p=mk('p');const ppr=kids(base,'pPr')[0];
+      if(ppr)p.appendChild(ppr.cloneNode(true));
+      p.appendChild(runOf(line,rprOf(base)));
+      tc.appendChild(p);
+    }
+  };
+  const one=s=>(s||'').replace(/\s*\n+\s*/g,' ');
+  const tbl=desc(doc,'tbl')[0];
+  const rows=kids(tbl,'tr');
+  const C=i=>kids(rows[i],'tc');
+  const r0=C(0),r1=C(1),r2=C(2),r3=C(3),r6=C(6),r7=C(7),r8=C(8);
+  if(f.teacher)setVal(r0[1],f.teacher);
+  if(f.grade)setVal(r0[3],f.grade);
+  if(f.subject)setVal(r0[5],f.subject);
+  if(f.observer)setVal(r1[1],f.observer);
+  if(f.unit)setVal(r2[1],f.unit);
+  if(f.total){const t=desc(kids(r2[3],'p')[0],'t');if(t[1])t[1].textContent=' '+f.total+' ';}
+  if(f.period){const t=desc(kids(r2[3],'p')[1],'t');if(t[1])t[1].textContent=' '+f.period+' ';}
+  if(f.date)setVal(r3[1],f.date);
+  if(f.place)setVal(r3[3],f.place);
+  const L=r6[0],R=r6[1];
+  const lp=kids(L,'p'),rp=kids(R,'p');
+  tick(L,f.salient);
+  addRun(lp[6],f.other1);
+  if(f.style)tick(R,[STYLE_NO[f.style]]);
+  addRun(rp[2],one(f.texts.direct));
+  addRun(rp[4],one(f.texts.indirect));
+  addRun(rp[6],one(f.texts.none));
+  addRun(rp[7],one(f.texts.other));
+  appendLines(r7[0],f.three);
+  appendLines(r8[0],f.four);
+  const out=new XMLSerializer().serializeToString(doc).replace(/^<\?xml[^>]*\?>\s*/,'');
+  let out2=out;if(app){const ap=apxBuildAppendix(app); out2=out2.replace(/<w:br w:type="page"\/>/g,'');{const _fi=out2.lastIndexOf('<w:sectPr');if(_fi>0){let _t=out2.slice(_fi);_t=_t.replace(/<w:pgMar [^>]*\/>/,'<w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="567" w:footer="454" w:gutter="0"/>');_t=_t.replace(/(<w:sectPr[^>]*>)/,'$1<w:type w:val="continuous"/>');out2=out2.slice(0,_fi)+_t;}}const insertAt=out2.lastIndexOf('<w:sectPr'); if(insertAt<0) throw new Error('範本缺少 sectPr'); out2=out2.slice(0,insertAt)+ap.xml+out2.slice(insertAt); for(const m of ap.media) zip.file(m.path,m.bytes); let rx=await zip.file('word/_rels/document.xml.rels').async('string'); const add=ap.rels.map(r=>'<Relationship Id="'+r.id+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'+r.target+'"/>').join(''); rx=rx.replace('</Relationships>',add+'</Relationships>');zip.file('word/_rels/document.xml.rels',rx); let ct=await zip.file('[Content_Types].xml').async('string'); if(!/Extension="png"/i.test(ct)){ct=ct.replace('<Default Extension="xml"','<Default Extension="png" ContentType="image/png"/><Default Extension="xml"');zip.file('[Content_Types].xml',ct);}}zip.file('word/document.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+out2);
+  return zip.generateAsync({type:'uint8array',compression:'DEFLATE'});
+}
+function toB64(bytes){let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+8192));return btoa(s);}
+
+const EMBED_TPL='UEsDBBQABgAIAAAAIQDfpNJsWgEAACAFAAATAAgCW0NvbnRlbnRfVHlwZXNdLnhtbCCiBAIooAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC0lMtuwjAQRfeV+g+Rt1Vi6KKqKgKLPpYtUukHGHsCVv2Sx7z+vhMCUVUBkQpsIiUz994zVsaD0dqabAkRtXcl6xc9loGTXmk3K9nX5C1/ZBkm4ZQw3kHJNoBsNLy9GUw2ATAjtcOSzVMKT5yjnIMVWPgAjiqVj1Ykeo0zHoT8FjPg973eA5feJXApT7UHGw5eoBILk7LXNX1uSCIYZNlz01hnlUyEYLQUiep86dSflHyXUJBy24NzHfCOGhg/mFBXjgfsdB90NFEryMYipndhqYuvfFRcebmwpCxO2xzg9FWlJbT62i1ELwGRztyaoq1Yod2e/ygHpo0BvDxF49sdDymR4BoAO+dOhBVMP69G8cu8E6Si3ImYGrg8RmvdCZFoA6F59s/m2NqciqTOcfQBaaPjP8ber2ytzmngADHp039dm0jWZ88H9W2gQB3I5tv7bfgDAAD//wMAUEsDBBQABgAIAAAAIQAekRq37wAAAE4CAAALAAgCX3JlbHMvLnJlbHMgogQCKKAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArJLBasMwDEDvg/2D0b1R2sEYo04vY9DbGNkHCFtJTBPb2GrX/v082NgCXelhR8vS05PQenOcRnXglF3wGpZVDYq9Cdb5XsNb+7x4AJWFvKUxeNZw4gyb5vZm/cojSSnKg4tZFYrPGgaR+IiYzcAT5SpE9uWnC2kiKc/UYySzo55xVdf3mH4zoJkx1dZqSFt7B6o9Rb6GHbrOGX4KZj+xlzMtkI/C3rJdxFTqk7gyjWop9SwabDAvJZyRYqwKGvC80ep6o7+nxYmFLAmhCYkv+3xmXBJa/ueK5hk/Nu8hWbRf4W8bnF1B8wEAAP//AwBQSwMEFAAGAAgAAAAhANZks1H0AAAAMQMAABwACAF3b3JkL19yZWxzL2RvY3VtZW50LnhtbC5yZWxzIKIEASigAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAArJLLasMwEEX3hf6DmH0tO31QQuRsSiHb1v0ARR4/qCwJzfThv69ISevQYLrwcq6Yc8+ANtvPwYp3jNR7p6DIchDojK971yp4qR6v7kEQa1dr6x0qGJFgW15ebJ7Qak5L1PWBRKI4UtAxh7WUZDocNGU+oEsvjY+D5jTGVgZtXnWLcpXndzJOGVCeMMWuVhB39TWIagz4H7Zvmt7ggzdvAzo+UyE/cP+MzOk4SlgdW2QFkzBLRJDnRVZLitAfi2Myp1AsqsCjxanAYZ6rv12yntMu/rYfxu+wmHO4WdKh8Y4rvbcTj5/oKCFPPnr5BQAA//8DAFBLAwQUAAYACAAAACEAglnwrr8LAACJqAAAEQAAAHdvcmQvZG9jdW1lbnQueG1s7F1bU9tIFn7fqv0PLj/NPiS2fDc1MAWkSKYqW0Uls7OPKVkWthdZckkyl3lysmEhBYHMBJwLTAipMGG5hLkwGwIk818GS7af+AvbF0m2sQFZ2LHkNElZVrf66NPpc75zuiW1v/xqIs25xlhRSgl8r5u66nW7WJ4R4ik+0ev+xzdDVyJulyTTfJzmBJ7tdU+ykvurvr/+5cvxnrjAZNMsL7uACF7qGc8wve6kLGd6PB6JSbJpWrqaTjGiIAkj8lVGSHuEkZEUw3rGBTHu8XkpL/qWEQWGlSRwvkGaH6MltyaOmTAnLS7S46AxFBjwMElalNmJigyqaSFBT9QTqRfksyAIXKGPqhflb1pUyANR1QkKWBIEUNVJClqT1ODiQtYk+eolha1J8tdLiliTVGdO6XoDFzIsDypHBDFNy2BXTHjStDiazVwBgjO0nIqluJQ8CWR6Q7oYOsWPWkAEWhkS0v540xLCnrQQZzl/XJci9LqzIt+jtb9itIfQe3B7baO3EM1cP25yTSMHdOUekeWALgReSqYyhoenrUoDlUldyNh5FzGW5vTjxjOUSXc5i56uYVVWBJqBr+k/zWHk50ukvCZ6BIowWpiBUHtOHUkaWGHlxJZUU6VcyiSB6AJ8dQJCTMqkSesysDbB9YCWVXIktjkxQV2MNJmuuPp4JnE5a7kuCtlMRVrqctK+rvj+OIzCTcjSrK7aE6TLgbmdpDOAEtJMz9cJXhDpGAcQARtyATNwoR6An6BXXNDp3H0gVYgJ8Um4zbjGe0CqEb/V6/Z6fZR/KBJ160XDolYYGew3Cq+xI3SWk+sPH4ZFIX9wYCCMzpAZFtGGTrADIkuPDrDAB1gPLJMyNANgg4b0iMyKN1M8CzQQ9EJRqATkPRG0x6WgckNeY+dWFl4bO0EzshvJ+hcDasZortfNADpiRVwqZGV49M0xTq/14goRoxKHBF6WQB1LS3K/lKJ73erGM3X9XXlrER8YQ5+MwAmiIQL9QSQy6CR2ENb1ukE4kincRvpOP9Qf0ksG4VmqyjwaBo+hISi/Xt+2AguE9Cnv1pWpd7BIxhUOwh52Juzj3N3Ch+XS0x3l4zs1v3tyNOPM6xjiwHAFjGicif7k6EHh4AdldkmZ+Y/64pH621J5ekGZy+Pd0tpGzWVBv0btYpy20eTEuH+Cc4AEgfIGIkGEbzIDuCw+QWMUjZkMtBsAZA+0h/YESNjoIEj8HAvlSN8BoT70DRArC7nOpSml101nZQFL4tgR2XLjmCDLQtpyczGVSFo/eYoHVsLeaNw+YLL5t9aaw76t7YIYd1MQRg1zC/SjZiMpUZJvCbB/4S5Ha3uVSmCJ2TQc0uv1egE6hBduDAAvMfa+xXvIZjEGw46ui6k4/JoAWyDDhazKF/Jp9m2mOBrV4uGpUn+DUioYjDYqDnurwOmYZMOpTSYU36CyoM8foYLI92Xd8cQbbLXVhKOBs/0EgtDbMfhT39O8DinCVed0MmN377rYvs9xLjPWXa2BsX4uleDr9TvekwQu9HcwkNYbadldk719QfpYZQZaclRJFXEq6A81mwqajiVWo4gvUh9FcFlbcr32wYRRTJ2fKW3+qi49U/a3GsY10uNd1uMgqyzsHyo/zxef38f9DhKeBl2PvB41sRvBXsyQtudXQqkmLXe8J3uqJxp4nTmDhTkQsVeSD5DocE50KBwewqDwfq+499xCUIAjCgiG+BiJCU6ICWisSwyWBAUSFC4MCuWXT5XV1Zqg4ADsHqcBLr75vrj81kLsRRN0EMfnxGUX4ibRt+PRF26wqRrOZ1KzpieLqaBXA9eB2eKLDZhMFp/ubRLy7R2FSm9ypc1fCwcHyuO1BrGIkGQLSBLp0xxMF/QxHihPr7QCfJQVDe/VbgdamDwubT4s7Ty4zMxxOBJC1HOKbOHdxtsZ2oAY/FQcTNIX4pmdTV86ea+bZC9kFuOzSGlgyNrZV/Jvlal/W4haHXMyMrX9+bqVOdOkopFGt11OJ1Q+YrEkKthi2NNQYzZxvUqoKO7m1O1Go9+L/NHvw51G/LF1AxzikJ9JmqZM/VLjcjaFfC7VAcnwXS/d7jMiK7HiGOvuO87lwH8nXF91lwAibMCCxPe6zvfUlW0Q8bTod++guL1NXNEJrqglJHCDjzOuw6Rnkpmqdr7yRAYlhIeb8nJlarucn8XvZjiNoRz3wA0Od6U3OWV3VX2yrq7UPuNUw7D2I7bLje0Ir30qXosNSoTfdJe7c+dO61mi/RpG1Px+z6nQHax1daUdSyEQrV+g9SfrFkJhd92NIBGSZP6dCDMrP5cPX1jwvu6699DmpUbMuh/xOJMmbMunq0KU9iihtTmrs9bvOe1S2uJC9l9h5BM7lZSMG2rnWFo83cQF18vhQO21KPxnWOAQKozRzGhCFLJ8HI+v9ZrbSTrOwjYYsO0DZwD7VkM37rYQ2ebQeO9ZaePw5Oi5urJd3MuV5+6X1jaKi79UP7Je+Pij+vi58vYVnNaZgsgKB7PK7k/K2payu3Wcu3d2ZP0EhBT0alxBCMlkjtARPhpCf+fwkfOZhzxB1DR2P0qdawhp6o3y9j1eHrCjvOILeC91dy7oCyBnssvYwUmPl9vF2Svr6HYqzbBhSlHtrYX93HHurrK/VVxcxet8ltdeKDPrZ/qvzXoxxcPwBZ1mMEmLEnr3FR0MSvBosbnOjnV/l1NXa7q1JehaqTaITV3Jldd2S98/KT6/jw2yeO/A/rB77A/x5GhGWdgtvZ4u3923P9q/OZCB/FqGiRgo7GuWgbqae/7Mr1Gtt7oW8s78enHvoZ0RAg367IyvfPRYmf3d5hr02xlf4cMfxcXGy6oT4nMw8QVsTXwLj5SlBZu7bdDWGjxaLG0v21yDIVtrcG66+Lo2yyfE1wXE14bfn2mh0T14X/rvks3dNmJnfKVXW8qs3TUYtTM+uAL9KQ0S4usC4qO8dra68o8r6s4rB1odmeK9qGt9V+1seMrU/wqH+ZMjK0uqB30BM4/TBnAxWUyA3JRzoPsWDuaOc3fxooL4fazyqw315ZFTbsoRKq5NA9rAxq3UHMRWXN5T59exsXWRgdnQtFrcc41f53eBPzunAOr8RmkrX9rcVJ/ON04ECKXZmdLakWC2mtLK+cfdSGm2NTBCbF1NbN1Oaf42UFoL7apqGFDYf4gfjiLW5QjrIkzmXFuzP28FbM1bJub64AYfbSA3aU7mfxAnGg5jrDZ6x8ip7wKQeUddL10Wp/oK+w/gvKP+7DV+8LrhTGRpZrr1rBNrNffs7BcXV+HnHz/YOtLOPFKXZgrvZ/H8blvJMkKFrwXC55NlmNJuqRGyJGRJyPIsdllehm9O2SK/CUW1F/+Jx3ZgSYcOuaz5uGppjZ6630driz+2GBv0wbbcbms9zPLLmcJ+rvDhd3XzVfnZ/ePcXGdzlGpshQ/Lpac7ysd3an7XPqi+GOJoHjpd7VthndUUemcWJ27qb214CrINlnecewiTzflV5c0sXui1tPG0PHe/8UIghMk61lFtucvWepjKwi5+Z0ld2S5PLyhzeewPpbUNvMLMydGcOpNXFn5SXufxkThtKj6YAU2ALRLyI+T3qcJurYECLnQE7C8cgbJwMKc+ngZpjSPQNnq5HJZUxmxwE+Pg0S2OgdEhbyTkRRqojYFWXBEiNxnGrHl6DDbBY8MMnTAWITKXIZyviIGAd8AbqVaExDLysHEh9c1ug/pTLSE0/aIYYEgpPitkJWwBmcRtOIiHo1wq6g1BKUnwPRTxoxE9PACM3eD1CRn8DgM8DxwdGnt4qGnsVt52gLJYGpByrzsYCsPdEUGQ4W4giIa/iayMdrX5NKB9aOPa0DLg03/TOSVz7HACfY8LzHUw6jb0DSdgJHRW8GU4JTNJ45F3j66rigU07A9vf8DXjy78dH9oNejE9WrXaptXIhUIVGuRimAj09WoV2M96rW6IiNBtLKhrshoFI3GzSnSsvJiQnwSfQESsmmWl/v+DwAA//8DAFBLAwQUAAYACAAAACEAM4Mpw+UGAADQIAAAFQAAAHdvcmQvdGhlbWUvdGhlbWUxLnhtbOxZW4sbNxR+L/Q/DPPu+DbjyxJvsMd2NslusmSdlDzKtjyjtWZkJHk3JgRK8tJCKRTS0kID7VMfSkmggYaW0h+zYUOa/ohKGtszsjXNZXchlF3DWpfvHH065+joeObipbshtg4gZYhEDbt4oWBbMBqQIYr8hn2r183VbItxEA0BJhFs2DPI7EubH390EWzwAIbQEvIR2wANO+B8spHPs4EYBuwCmcBIzI0IDQEXXernhxQcCr0hzpcKhUo+BCiyrQiEQu2N0QgNoPXiz8+Ov3vy4vkfr378wt5crNHB4l/EmRwYYLonV4CaoMIOx0X5xWbMw9Q6ALhhi+WG5LAH73LbwoBxMdGwC+rPzm9ezC+FMM+QTcl11d9cbi4wHJeUHPX7S0HHcZ1Kc6lfATBfx3WqnUqnstSnAGAwEDuNueg6qyXPmWNToLhp0N2utstFDZ/SX17DN1350fAKFDedNXy36yU2TIHipruGd1v1VlvXr0Bxs7KGrxaabaeq4RUowCgar6ELbqXsLXa7hIwI3jLC667TrZbm8ASVT0VXLB/xrFgLwT6hXQFQzgUcRRafTeAIDATOAxj1KbK2kR+IwJuAiDAxXCgVuoWy+C8/jmopj4INCFLS8dCArQ1JPhYbUDThDfuq0GqnIMfPnx89eHb04Lejhw+PHjyZr70utwUiPy33+qev/nn8qfX3rz+8fvS1Gc/S+Je/fP7y97/+Sz3XaH3z9OWzp8fffvnq50cGeJOCfhreQyFk1nV4aN0kodigYQHYp+8m0QsASks0I5+BCEgZA7rDAw19fQYwMOBaULfjbSrShQl4ebqvEd4L6JQjA/BaEGrAHUJwi1Djnq7JtdJWmEa+eXE6TeNuAnBgWttb8XJnOhFxj0wqvQBqNHexcDnwYQS5JefIGEKD2B2ENLvuoAEljIy4dQdZLYCMJumhvhZNidAWCoVfZiaCwt+abXZuWy2CTerb8EBHirMBsEklxJoZL4MpB6GRMQhxGrkNeGAiuTejA83gjAtP+xATqzOEjJlkbtCZRveaSDNmt+/gWagjKUdjE3IbEJJGtsnYC0A4MXJGUZDGXmFjEaLA2iXcSILoJ0T2hR9AlOnu2whq7n7z2b4l0pA5QOTMlJqOBCT6eZzhEYAm5U0aaim2SZExOlpTXwvtbQgxOARDCK1bV0x4MtFsnpC+GoissgVNtrkK9FiV/QgyaKnixuBYxLSQ3YM+yeCzM1tJPDMQhYBmab4+1kOmI6660BiveDDWUimi8tCaSdxgoba/TK27AdDCSvaZOV5nVPPf25wxIbP/HjLwnWVEYn9r2/QA1hZIAqYHRJVhSrdCRHN/IiKPkxKbGuVG+qFN3JBfKXpCFL2xAlqpfdyzq31EhXH8/WMD9nTqHTPwJJVOVjJZrW+ycKtVjUfoEH34RU0bTKNdKO4RA/S8pjmvaf73NU3WeT6vZM4rmfNKxixyBpVMUryoR0CLBz1KS5j51GeEMN7jMwy3mSp7mDj7w64YVB0ltHzINAlEc76chvMpUG2LEv4J4sFeACZimaJawWdz1T6zJoSJwkkNG3XLCTwNd8gwHi0WF881hQDgybgovBbjokzj8WilmjzAW6pXPV89aF0QkLLvQiK1mE6ibCBRXQy+gYTa2amwqBtY1KT6TBbqa+4VcTlZQD4Zd52YkQg3EdJD6adYfuHdU/d0ljH1bZcM26tLrqfjaY1EKtx0EqkwDMTlsTp8yr6uJy7V6ElTrNOo1s7C1zKJrOQGHOk961CcubIr1AzApGGPxE8m0QwnQh+TmQpgP2rYAz439PtklgllvA1YEMPUVLz/EHFILYxCEetpN+Ao4VYsVeUeP1By9cKHZzn1lXYyHI3ggGeMJF0xFysxzp4QLDtkKkjvBcNDq4+n9CYQhnKrRWnAIWJ8ac0hoqngTqy4kq7mR1F735IcUYAnAZjfKOlkHsNVe0kntQ/FdHVXen++mb4vnXTiW/fNQnIilTQzLhB5a5rzx9ld8ilWSd7XWMWpezXX1Re5LuuWOPmFkKKWLKZRk4wN1JJRndopFgSp5ZahmXVHnPZtsBq18oJY1JWqt/Zim/T3ReS3RbU6xZwpquJXCwXe4pVknAnU6CK73OXWlKKGfa/gNh2v5Hq5Qs3t5JyyU8jV3GY513TdcrHjFgvtVum+MAoPwqIbr90VP/bxbP76Xo2vvcIPF6X2hQEJ80TVwXklrF7hF0umV/g9OW9bSFjmXqXUrZfrrUquXm52c067VcvVvUor16541Xa37bm1eve+bR0osNMse06lU8tVip6XcyoFSb9Wz1WdUqnpVJu1jtO8P7e12Pnie2FexWvzXwAAAP//AwBQSwMEFAAGAAgAAAAhADAkQ2IwBAAATwsAABEAAAB3b3JkL3NldHRpbmdzLnhtbLRW33PaOBB+v5n7Hxg/HwE7wKVMSQcCbtKBthOTy7NsL1gXWfJIMoTc3P9+K8nC3KXtJL3JSyLvt/vtarU/eP/hsWSdHUhFBZ8E4Vk/6ADPRE75dhLcrePuRdBRmvCcMMFhEhxABR8uf/3l/X6sQGtUUx2k4GpcZpOg0Loa93oqK6Ak6kxUwBHcCFkSjZ9y2yuJfKirbibKimiaUkb1oRf1+6OgoRGToJZ83FB0S5pJocRGG5Ox2GxoBs0/byFf4teZzEVWl8C19diTwDAGwVVBK+XZyp9lQ7DwJLsfXWJXMq+3D/svuO5eyPxo8ZLwjEElRQZK4QOVzAdIeet48Izo6PsMfTdXtFRoHvbt6TTy4esIomcEo4zmr+MYNRw9tDzhUfA6mqGnUYcSHj2RYi9JrYOWNJVEusJt8lpm45stF5KkDMPB/HYwRR0bnflrIr7EptlR2HfwH0Fv3PCyoGfkKUaEXTgXn4VOailFzfNrICj7LhwLoRs4hw2pmV6TNNGi8vyDi74jz6mqGDlcC0mfBNeEzSXZY2V8lDRfYPMfvMW/9f8AqWn2fe3IaWcFkSTDUJKKZKh3hS6kYF7LtLrESvxa80zXtuEaOzsDzEmhIcRC3i3dZQkjPIMEuRjMDhobrU7d6Z7munAxmlQsgexgRrIHxYgqpmZEWbBma0koMwE5gdVePFY4yJKCbvQtaGw7C5H8z1rpJeVwDXRb6Bu+Nm/oeBTEiyU5iFqfhJy4wYcX5KQEd8PjMFuJHCcTmkr68qo0BjZZ4fA0N/91JDD7+AhgA0z0gWHSuE7oE0x5/glvQZHRZfjnI/hRAMCN5y/YFutDBTEQzCIuhLdxZt8sZrRaUSx4ecNznLVv5oxuNiDRASUaVthLVIq9zbPrwrfyixV2j8o4lc6xZLOHmdBalNeHqsBc/7+XtM3cO+0z3PK58odbHB9H1X4UnscX71ykBm2R/nQQTUffQlqb3pG7HJs9+FX6kynQTuksrkiZSko6K7Mpe0YjlQ8zyj2eAk5aOEWSOvVgt+sAhSOTxZgqD9hrlnZmzWFjz2xF5LblbTTkN6U4Oj8duTIsAJAfcbxWDt1LUrnC8yrhYNBYUo5To/RyVaeJt+K4G04gnNVfdtLmqU3PfqzxIW0DL4ktCKsLvHuXmCcEovRUUTIJnoru+r6pISYT8/6wIlXlyijdhpOAmcEVGjONXzn+xrIf6TZqsMhikcPsB8nMZVG7ObSyyMtO9M697LyVDbxs0MqGXjZsZSMvGxlZgYNDMsofsKL90cg3gjGxh/y6xZ+Jmu0EGcUiSA5l2m6ZM4cxqrDFKlxIWkiP/WaxcGg3lbZthrm7hc2MKMgbLBfZTW52trP5K5xH53E8C7uLeB53B2H/9+5FHF11F/M4ns6iwXAxG/3d1L7/JXz5DwAAAP//AwBQSwMEFAAGAAgAAAAhAFj6WD9TAgAAwQcAABIAAAB3b3JkL2ZvbnRUYWJsZS54bWy8lNFq2zAUhu8Hewej+8ayE6dpqFOyrIZBV8ZoH0BR5FjMkoykxMlL7GqM9QEGg930YrA3ythbTJLttGvSEV8sNgj7nKNPRz8/5/xixXJvSaSigscg6EDgEY7FjPJ5DG5vkpMB8JRGfIZywUkM1kSBi9HLF+flMBVcK8/s52rIcAwyrYuh7yucEYZURxSEm2QqJEPa/Mq5z5D8sChOsGAF0nRKc6rXfghhH9QYeQhFpCnF5LXAC0a4dvt9SXJDFFxltFANrTyEVgo5K6TARClzZ5ZXPIYo32KC3g6IUSyFEqnumMvUHTmU2R5A98XyB0DUDhDuAPqYztox+jXDNzsfcRRph4kajFozsgIew8M3cy4kmuaGZKTxzO08B7arPWxUe8MrhxwxUzVBOZ1K6hIF4kKRwOSWKI8BDGECI7Patwe7dgW+LcQZkopYSFUIq3CKGM3XTVSVVKkqUVCNsya+RJLaDquUonOTWKgpjMElhDC8TBJQRQLTnY30Tl/VkdCe5Z6zOtLdRqCNYMdxv0HFwY6zrTFn+pUCO0psPt//+nG/+fLx9/dPTg6U62uTafp+99Z48Ire1lfa0So0Wv317NVqMNinlRQM8VZaje0J4WOtwsEkSSbJ+KlWQf/fWgWuqJ1WN5QR5V2T0nvvOn9Okb5xTWS8Y13UbeWe9orsd8/pIDqOe77dbb7+bKzzVIuu2R3BswbUwA50h8KSFnqPGCldkdmuEvUJ3Qcl4ABaedwt/7c36oniXdF5pp+dK3aaHHWujI82V+oPNfoDAAD//wMAUEsDBBQABgAIAAAAIQC91I2/JwEAAI8CAAAUAAAAd29yZC93ZWJTZXR0aW5ncy54bWyU0s1qAjEQAOB7oe8QctesUqUsrkIpll5Koe0DxOyshmYyIRO72qdv3Gp/8OJeQibJfMmEmS126MQHRLbkKzkaFlKAN1Rbv67k2+tycCsFJ+1r7chDJffAcjG/vpq1ZQurF0gpn2SRFc8lmkpuUgqlUmw2gJqHFMDnzYYi6pTDuFao4/s2DAxh0MmurLNpr8ZFMZVHJl6iUNNYA/dktgg+dfkqgssied7YwCetvURrKdYhkgHmXA+6bw+19T/M6OYMQmsiMTVpmIs5vqijcvqo6GbofoFJP2B8BkyNrfsZ06OhcuYfh6EfMzkxvEfYSYGmfFx7inrlspS/RuTqRAcfxsNl89whFJJF+wlLineRWoaoDsvaOWqfnx5yoP610fwLAAD//wMAUEsDBBQABgAIAAAAIQDOCcmgdQEAAMoCAAAQAAgBZG9jUHJvcHMvYXBwLnhtbCCiBAEooAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJxSTU/DMAy9I/Efqt5ZOkDVhLxMaBPiwJe0bjtHidtGpEmUBMT+Pe4KpYgbOdnP9st7TmD10ZnsHUPUzi7z+azIM7TSKW2bZb6r7i4WeRaTsEoYZ3GZHzHmK35+Bi/BeQxJY8yIwsZl3qbkbxiLssVOxBmVLVVqFzqRKA0Nc3WtJW6cfOvQJnZZFCXDj4RWobrwI2E+MN68p/+SKid7fXFfHT3xcaiw80Yk5E/9pJkplzpgIwqVS8JUukNeEDwm8CIajHwObAjg4IKKvCyBDRGsWxGETLRAfrWgvkkOt94bLUWi1fJHLYOLrk7Z80lv1s8Dm7YAediifAs6HXsZ0xQetKX7r4ANAQkLognCt1/qxgy2Uhhck3teCxMR2A8Aa9d5YYmOjRHxvcadr9ymX8TXyG9wYvKgU7v1QpKE6+tyandSgS2hqEj/KGEE4J5eJJien2Ztg+q752+hX+B++Jp8Xs4KOqeNfWPke/wz/BMAAP//AwBQSwMEFAAGAAgAAAAhANUCv/CBAQAAmQIAABEACAFkb2NQcm9wcy9jb3JlLnhtbCCiBAEooAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGySvU7DMBSFdyTeIfKeOkkBoShNJUCdqIREEYjN2LetaeJYttu0KwwwsCLEQyAxViy8DEU8Bk7SphR1uz+fj6/PddSepokzAaV5JlrIb3jIAUEzxsWghS56HfcQOdoQwUiSCWihGWjUjnd3IipDmik4U5kEZThoxyoJHVLZQkNjZIixpkNIiW5YQthmP1MpMTZVAywJHZEB4MDzDnAKhjBiCC4EXVkroqUko7WkHKukFGAUQwIpCKOx3/DxmjWgUr31QNn5Q6bczCRsRVfNmp5qXoN5njfyZona+X181T09L5/qclF4RQHFEaOh4SaBOMLr0EZ6fHML1FTlOrExVUBMpuKfh4/F08tifvf9/Lp4f/yavy0+70t6RRTej2CWZ4ppq7ORWYyBpopLYzda3bJRsHRCtOnaFfc5sKNZpfC/ZksKJrz4FrFfEnUaLT2u5gHmWG/CyslV57J5fNLroDjwAs/1AzcIet5euB+EnnddjLRxvhpg8zPFvwAAAP//AwBQSwMEFAAGAAgAAAAhAO0z7JNTCwAAm3EAAA8AAAB3b3JkL3N0eWxlcy54bWy8nU1z2zgShu9btf+BpdPuwZG/naTGmXKcZO2aOOMZOZszREIW1iCgBanYnl+/IEhJkJug2GCvL4klsR+CePsF0PyQfvn1KZfJT24KodX56ODN/ijhKtWZUPfno+93X/bejpKiZCpjUit+PnrmxejXD3//2y+P74vyWfIisQBVvM/T89G8LBfvx+MinfOcFW/0giv74UybnJX2pbkf58w8LBd7qc4XrBRTIUX5PD7c3z8dNRjTh6JnM5HyTzpd5lyVLn5suLRErYq5WBQr2mMf2qM22cLolBeFPehc1rycCbXGHBwDUC5Sows9K9/Yg2la5FA2/GDf/ZXLDeAEBzgEgNNUZDjGacMY20iPU3Ac5mSFKZ5z/jRK8vT99b3Shk2lJdmuSezRJQ5c/Vvt7INNjkynn/iMLWVZVC/NrWleNq/cf1+0Kovk8T0rUiHubGMsMRcWfnWhCjGyn3BWlBeFYP6Hn5v3qs/n1YatkWlRem9/FJkYjaudPnCj7Mc/mTwfHdZvFX+t3zhevXNZtat+r9lKMnW/eo+rve8Tv33no7/me3c/qremdlfnI2b2JhdV4Lg53Pp/rxMW61f1Vi96zKazTe5J7TH7KZ991ekDzyal/eB8tF/tyr75/frWCG2sj85H7941b054Lq5ElnHlbajmIuM/5lx9L3i2ef+PL84LzRupXir799HZiVNRFtnnp5QvKmfZTxWrOvRbFSCrrZdis3MX/t8V7KDps7b4OWfV8JIcvES45qMQh1VE4R1tO3P54tjdVqgdHb3Wjo5fa0cnr7Wj09fa0dlr7ejta+3IYf6fOxIq40+1EeFuAHUXJ+BGNCdgNjQn4CU0J2AVNCfgBDQnkOhoTiCP0ZxAmiI4pU5DWegl+1Eg27u5u+eIOO7uKSGOu3sGiOPuHvDjuLvH9zju7uE8jrt79I7j7h6s8dx6qZVcW5upcrDLZlqXSpc8KfnTcBpTluVqLhpeNelxQ3KQBJh6ZGsm4sG0lLnXuzPEmTR+Pi+rqizRs2Qm7pfGlupDG87VTy5t0ZywLLM8QqDh5dIEeiQmpw2fccNVyikTmw4qheKJWuZTgtxcsHsyFlcZcfetiCSDwjqh2bKcVyYRBEmds9To4U3TjGx8+CqK4X1VQZKPSyk5EesbTYo51vDawGGGlwYOM7wycJjhhYGnGVUXNTSinmpoRB3W0Ij6rc5Pqn5raET91tCI+q2hDe+3O1FKN8T7q46D/ufuLqWuzpIPbsdE3CtmFwDDp5vmnGlyywy7N2wxT6qzyu1Y/5ix+/mos+fkjmJOW5Oo1vUuRS7tUQu1HN6hWzQqc615RPZa84gMtuYNt9iNXSZXC7QrmnpmspyWraZ1pF6mnTC5rBe0w93GyuEZtjHAF2EKMhu0Ywky+Fu1nK3kpBj5Nq0c3rANa7itXo5KpM1rkAStlDp9oBmGr54X3Niy7GEw6YuWUj/yjI44KY2uc823/KGTpJflP+eLOSuEq5W2EP2n+tX19eSGLQYf0K1kQtHo9nkvZ0ImdCuIq7ubr8mdXlRlZtUxNMCPuix1TsZszgT+4wef/pOmgRe2CFbPREd7QXR6yMEuBcEkU5N0RkSyy0yhBMkc6ni/8eepZiajod0aXt/SUnIi4oTli3rRQeAtOy4+2vGHYDXkeP9mRlTnhahMdUcC804bFsvpf3g6fKj7phOSM0O/L0t3/tEtdV00HW74MmELN3yJ4NS000OVvwQHu4UbfrBbOKqDvZSsKETwEmo0j+pwVzzq4x1e/DU8LbWZLSVdB66AZD24ApJ1oZbLXBWUR+x4hAfseNTHS5gyjkdwSs7x/mVERiaGg1Ep4WBUMjgYlQYORirA8Dt0PNjw23Q82PB7dWoY0RLAg1HlGen0T3SVx4NR5ZmDUeWZg1HlmYNR5dnRp4TPZnYRTDfFeEiqnPOQdBONKnm+0IaZZyLkZ8nvGcEJ0pp2a/SsetZBq/ombgJkdY5aEi62axyVyD/4lKxpFYuyXQRnRJmUWhOdW9tMOC5y+961XWHuMYzBTbiVLOVzLTNuAscUjrX18mTB0uY0Pbjc1+u051dxPy+TyXx9tt/HnO7vjFwV7Fthu3fY1uenqydP2sJueCaW+aqh8GGK06P+wS6jt4Kb52C6gjcria3Ik56RcJ+nuyM3q+StyLOekXCfb3tGOp9uRXb54RMzD62JcNaVP+saL5B8Z11ZtA5u3W1XIq0j21LwrCuLtqySXKRpdbUAqtPPM+H4fuYJx2NcFKZg7BSm9PZVGNFlsD/5T1HN7JhB0+1vffcEGPfdIrrXyPnHUtfn7bcuOPV/qOvaLpxUwZNWzlH/C1dbo0y4H3sPN2FE73EnjOg9AIURvUaiYDhqSApTeo9NYUTvQSqMQI9WcEbAjVYwHjdawfiY0QpSYkarAauAMKL3ciCMQBsVItBGHbBSCCNQRgXhUUaFFLRRIQJtVIhAGxUuwHBGhfE4o8L4GKNCSoxRIQVtVIhAGxUi0EaFCLRRIQJt1Mi1fTA8yqiQgjYqRKCNChFoo7r14gCjwnicUWF8jFEhJcaokII2KkSgjQoRaKNCBNqoEIE2KkSgjArCo4wKKWijQgTaqBCBNmr9qGG8UWE8zqgwPsaokBJjVEhBGxUi0EaFCLRRIQJtVIhAGxUiUEYF4VFGhRS0USECbVSIQBvVXSwcYFQYjzMqjI8xKqTEGBVS0EaFCLRRIQJtVIhAGxUi0EaFCJRRQXiUUSEFbVSIQBsVIrrys7lEGbrN/gB/1jN4x37/S1dNo/70H+X2UUf9UatWhVn9n0X4qPVD0vrg4ZGrN/pBxFQK7U5RBy6r+1x3SwTqwufvl91P+Pj0gV+61DwL4a6ZAvhx30hwTuW4K+X9SFDkHXdluh8JVp3HXaOvHwmmweOuQdf5cnVTip2OQHDXMOMFHwTCu0ZrLxx2cdcY7QXCHu4amb1A2MFd47EXeJJUg/PL6JOe/XS6vr8UELrS0SOchQldaQm1Wg3H0Bh9RQsT+qoXJvSVMUxA6RnE4IUNo9AKh1FxUkObYaWON2qYgJUaEqKkBph4qSEqWmqIipMaDoxYqSEBK3X84BwmREkNMPFSQ1S01BAVJzWcyrBSQwJWakjASj1wQg5i4qWGqGipISpOari4w0oNCVipIQErNSRESQ0w8VJDVLTUEBUnNaiS0VJDAlZqSMBKDQlRUgNMvNQQFS01RHVJ7c6ibEmNUtgLxy3CvEDchOwF4gZnLzCiWvKiI6sljxBZLUGtVprjqiVftDChr3phQl8ZwwSUnkEMXtgwCq1wGBUnNa5aapM63qhhAlZqXLUUlBpXLXVKjauWOqXGVUthqXHVUpvUuGqpTer4wTlMiJIaVy11So2rljqlxlVLYalx1VKb1LhqqU1qXLXUJvXACTmIiZcaVy11So2rlsJS46qlNqlx1VKb1LhqqU1qXLUUlBpXLXVKjauWOqXGVUthqXHVUpvUuGqpTWpctdQmNa5aCkqNq5Y6pcZVS51S46qlGxsiCL4CapIzUyZ03xd3xYp5yYZ/OeF3ZXih5U+eJehDHT9u/WZVtQ/3C3F2+9IeaPW15d4zRln9ta0N0G14bUnM/exU1Zik+amt5temXJuby6vu70X9G2KPItOP1TPXRstViMurcbPJuKHD9qRz26C0+VaqUHv2QYMCXzjrGrVJpNXWTW9vurDebqsD69YGWllWidvVwoNAl9UpH2rXu8bDuxpmmzGVdVfbP65VZgGPza991Q3MnliNsp9fcilvWL21XoQ3lXxW1p8e7LtvHHjx+bT+8rxgvHGjbBAw3m5M/bI7Geqv028u/4e6+rClq919KEN7edOu1V/Fh/8BAAD//wMAUEsBAi0AFAAGAAgAAAAhAN+k0mxaAQAAIAUAABMAAAAAAAAAAAAAAAAAAAAAAFtDb250ZW50X1R5cGVzXS54bWxQSwECLQAUAAYACAAAACEAHpEat+8AAABOAgAACwAAAAAAAAAAAAAAAACTAwAAX3JlbHMvLnJlbHNQSwECLQAUAAYACAAAACEA1mSzUfQAAAAxAwAAHAAAAAAAAAAAAAAAAACzBgAAd29yZC9fcmVscy9kb2N1bWVudC54bWwucmVsc1BLAQItABQABgAIAAAAIQCCWfCuvwsAAImoAAARAAAAAAAAAAAAAAAAAOkIAAB3b3JkL2RvY3VtZW50LnhtbFBLAQItABQABgAIAAAAIQAzgynD5QYAANAgAAAVAAAAAAAAAAAAAAAAANcUAAB3b3JkL3RoZW1lL3RoZW1lMS54bWxQSwECLQAUAAYACAAAACEAMCRDYjAEAABPCwAAEQAAAAAAAAAAAAAAAADvGwAAd29yZC9zZXR0aW5ncy54bWxQSwECLQAUAAYACAAAACEAWPpYP1MCAADBBwAAEgAAAAAAAAAAAAAAAABOIAAAd29yZC9mb250VGFibGUueG1sUEsBAi0AFAAGAAgAAAAhAL3Ujb8nAQAAjwIAABQAAAAAAAAAAAAAAAAA0SIAAHdvcmQvd2ViU2V0dGluZ3MueG1sUEsBAi0AFAAGAAgAAAAhAM4JyaB1AQAAygIAABAAAAAAAAAAAAAAAAAAKiQAAGRvY1Byb3BzL2FwcC54bWxQSwECLQAUAAYACAAAACEA1QK/8IEBAACZAgAAEQAAAAAAAAAAAAAAAADVJgAAZG9jUHJvcHMvY29yZS54bWxQSwECLQAUAAYACAAAACEA7TPsk1MLAACbcQAADwAAAAAAAAAAAAAAAACNKQAAd29yZC9zdHlsZXMueG1sUEsFBgAAAAALAAsAwQIAAA01AAAAAA==';
+async function loadTemplate(){
+  if(EMBED_TPL&&EMBED_TPL.length>100){
+    TEMPLATE=Uint8Array.from(atob(EMBED_TPL),c=>c.charCodeAt(0));
+    setTplStatus(true,'附件範本已內建');return;
+  }
+  try{
+    if(isGAS()){
+      const b64=await gasCall('getTemplateBase64');
+      TEMPLATE=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+    }else{
+      const r=await fetch('template.docx');
+      if(!r.ok)throw new Error('404');
+      TEMPLATE=new Uint8Array(await r.arrayBuffer());
+    }
+    setTplStatus(true,'附件範本已載入');
+  }catch(e){
+    TEMPLATE=null;setTplStatus(false,'未找到範本：請上傳 template.docx');
+  }
+}
+function setTplStatus(ok,msg){const el=$('#tplStatus');el.textContent=msg;el.className='status '+(ok?'ok':'warn');}
+
+async function exportDoc(){
+  if(S.codes.length<2){toast('請先在第一步記錄代碼');goStep(1);return;}
+  if(!S.last&&!runAnalysis(true)){toast('分析失敗，請確認資料');return;}
+  if(!TEMPLATE){toast('請先上傳附件範本 .docx');return;}
+  const btn=$('#exportBtn');btn.classList.add('busy');btn.textContent='產生中…';
+  try{
+    const f=collectForm();
+    const app=apxInput();const bytes=await makeDocx(TEMPLATE,f,app);
+    const name=`工具7_佛蘭德斯量化分析表_${f.teacher||'未填教師'}_${new Date().toISOString().slice(0,10)}.docx`;
+    if(isGAS()){
+      const url=await gasCall('saveDocx',toB64(bytes),name);
+      showDL(url,name,true);
+    }else{
+      const url=URL.createObjectURL(new Blob([bytes],{type:DOCX_MIME}));
+      showDL(url,name,false);
+      const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    }
+    toast('Word 已產生');
+  }catch(e){toast('匯出失敗：'+e.message);}
+  finally{btn.classList.remove('busy');btn.textContent='產生並下載 Word';}
+}
+function showDL(url,name,gas){
+  const a=document.createElement('a');a.className='btn primary';a.href=url;
+  if(gas){a.target='_blank';a.rel='noopener';a.textContent='開啟 Word（已存入雲端硬碟）';}
+  else{a.download=name;a.textContent='再次下載：'+name;}
+  $('#dl').replaceChildren(a);
+}
+
+/* ================= 儲存 ================= */
+function readForm(){
+  const o={};
+  $$('[data-persist]').forEach(el=>o[el.id]=el.value);
+  o._salient=$$('.sal:checked').map(e=>+e.value);
+  o._style=(document.querySelector('input[name=style]:checked')||{}).value||'';
+  return o;
+}
+function writeForm(o){
+  if(!o)return;
+  $$('[data-persist]').forEach(el=>{if(o[el.id]!==undefined)el.value=o[el.id];});
+  $$('.sal').forEach(e=>e.checked=(o._salient||[]).includes(+e.value));
+  if(o._style){const r=document.querySelector(`input[name=style][value="${o._style}"]`);if(r)r.checked=true;}
+}
+const RKEY='flanders-records-v1';
+let RS={current:null,list:{}};
+const newId=()=>'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const curRec=()=>(RS.current&&RS.list[RS.current])||null;
+function blankRec(name){const id=newId();return {id,name,codes:[],auto:{},form:{},created:Date.now(),updated:Date.now()};}
+function loadRS(){try{const x=JSON.parse(localStorage.getItem(RKEY)||'null');return x&&x.list?x:null;}catch(e){return null;}}
+function updRecLabel(){const r=curRec();if(!r)return;const o=document.querySelector('#recSelect option[value="'+r.id+'"]');if(o)o.textContent=r.name+'（'+r.codes.length+' 筆）';}
+function save(){
+ try{
+  localStorage.setItem(KEY,JSON.stringify({settings:S.settings,view:S.view,theme:S.theme,step:S.step}));
+  const r=curRec();
+  if(r){r.codes=S.codes.slice();r.auto=S.auto;r.form=readForm();r.updated=Date.now();updRecLabel();}
+  localStorage.setItem(RKEY,JSON.stringify(RS));
+ }catch(e){}
+}
+function applyRecord(rec){
+ if(!rec)return;
+ S.codes=(rec.codes||[]).slice();S.auto=rec.auto||{};S.last=null;
+ $$('[data-persist]').forEach(el=>{el.value='';});
+ $$('.sal').forEach(e=>{e.checked=false;});
+ $$('input[name=style]').forEach(e=>{e.checked=false;});
+ writeForm(rec.form||{});
+ $('#codeText').value=S.codes.join(' ');
+ renderKeypadState();
+ if(S.step>=2&&S.codes.length>=2) runAnalysis(true); else showEmpty(true);
+}
+function renderRecList(){
+ const sel=$('#recSelect');if(!sel)return;
+ const list=Object.values(RS.list).sort((a,b)=>(a.created||0)-(b.created||0));
+ sel.innerHTML=list.map(r=>'<option value="'+r.id+'">'+esc(r.name)+'（'+r.codes.length+' 筆）</option>').join('');
+ if(RS.current)sel.value=RS.current;
+}
+function addRecord(name,codes){
+ save();const r=blankRec(name);if(codes&&codes.length)r.codes=codes.slice();RS.list[r.id]=r;RS.current=r.id;applyRecord(r);save();renderRecList();return r;
+}
+function switchRecord(id){
+ if(!RS.list[id]||id===RS.current){renderRecList();return;}
+ save();RS.current=id;applyRecord(curRec());save();renderRecList();toast('已切換至「'+curRec().name+'」');
+}
+function newRecord(){
+ const n=Object.keys(RS.list).length+1;
+ const v=prompt('請輸入新觀察紀錄的名稱：','觀察紀錄 '+n);if(v===null)return;
+ const r=addRecord(v.trim()||('觀察紀錄 '+n));goStep(1);toast('已建立「'+r.name+'」');
+}
+function createRecordFromCodes(name,text){
+ const {codes,bad}=parseCodes(text);
+ if(!codes.length){toast('沒有有效代碼（僅接受 1–10）');return;}
+ const r=addRecord(name,codes);goStep(1);
+ toast('已建立「'+r.name+'」（'+codes.length+' 筆'+(bad?'；略過 '+bad+' 個無效項目':'')+'）');
+}
+function renameRecord(){
+ const r=curRec();if(!r)return;const v=prompt('重新命名：',r.name);if(v===null)return;
+ r.name=v.trim()||r.name;save();renderRecList();toast('已更名');
+}
+function deleteRecord(){
+ const r=curRec();if(!r)return;
+ if(!confirm('確定要刪除「'+r.name+'」嗎？此操作無法復原，建議先匯出 .txt 備份。'))return;
+ delete RS.list[r.id];
+ let ids=Object.keys(RS.list);
+ if(!ids.length){const nr=blankRec('觀察紀錄 1');RS.list[nr.id]=nr;ids=[nr.id];}
+ RS.current=ids[0];applyRecord(curRec());save();renderRecList();goStep(1);toast('已刪除紀錄');
+}
+function exportRecordTxt(){
+ const r=curRec();if(!r)return;
+ const blob=new Blob([S.codes.join(' ')],{type:'text/plain;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=r.name+'.txt';document.body.appendChild(a);a.click();a.remove();toast('已匯出 .txt');
+}
+function load(){try{return JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){return null;}}
+
+/* ================= 版面與主題 ================= */
+const mq=window.matchMedia('(max-width: 820px)');
+const dmq=window.matchMedia('(prefers-color-scheme: dark)');
+function applyLayout(){
+  const eff=S.view==='auto'?(mq.matches?'mobile':'desktop'):S.view;
+  document.documentElement.dataset.layout=eff;
+  $$('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===S.view)));
+}
+function applyTheme(){
+  const eff=S.theme==='auto'?(dmq.matches?'dark':'light'):S.theme;
+  document.documentElement.dataset.theme=eff;
+  const b=$('#themeBtn');
+  b.textContent=eff==='dark'?'☀ 淺色':'☾ 深色';
+  b.setAttribute('aria-label',eff==='dark'?'切換為淺色模式':'切換為深色模式');
+  if(document.getElementById('tlCanvas')&&S.codes&&S.codes.length)renderTimeline();
+}
+
+/* ================= 步驟切換 ================= */
+function goStep(n){
+  if(n>=2&&S.codes.length<2){toast('請先記錄至少 2 筆代碼');n=1;}
+  if(n>=2&&!S.last){runAnalysis(true);}
+  S.step=n;
+  document.documentElement.dataset.step=String(n);
+  $$('.panel').forEach(p=>{p.hidden=+p.dataset.step!==n;});
+  $$('.steps button').forEach(b=>b.setAttribute('aria-current',+b.dataset.step===n?'step':'false'));
+  $('#prevBtn').disabled=n<=1;$('.dock').hidden=n===0;
+  $('#nextBtn').textContent=n===3?'產生 Word':(n===1?'查看結果 →':'填寫表單 →');
+  if(n===2&&S.codes.length<2) showEmpty(true);
+  window.scrollTo({top:0,behavior:'auto'});
+  save();
+}
+function nextStep(){
+  if(S.step===3){exportDoc();return;}
+  goStep(S.step+1);
+}
+
+/* ================= 時間線標記圖（對應 FIAS 規格：每列 40 筆、每頁 400 筆） ================= */
+const TL_ROWS=[{label:'1.2',ids:[1,2]},{label:'3',ids:[3]},{label:'9',ids:[9]},{label:'4',ids:[4]},{label:'8',ids:[8]},{label:'5',ids:[5]},{label:'6.7',ids:[6,7]}];
+const TL_ROW_OF={};TL_ROWS.forEach((r,i)=>r.ids.forEach(id=>{TL_ROW_OF[id]=i;}));
+const TL_PAGE=400,TL_STRIP=40,TL_MAXSTRIP=10;
+const TL_G={CW:14,CH:14,LEFT:52,RIGHT:20,TOP:14,GAP:44};
+let TLP=0;
+function tlPages(n){return Math.max(1,Math.ceil(n/TL_PAGE));}
+function timelineGrid(codes,page){
+  const start=page*TL_PAGE,slice=codes.slice(start,start+TL_PAGE),marks=[];
+  slice.forEach((c,k)=>{const row=TL_ROW_OF[c];if(row!==undefined)marks.push({strip:Math.floor(k/TL_STRIP),col:k%TL_STRIP,row,index:start+k+1,code:c});});
+  return {count:slice.length,strips:Math.max(1,Math.min(TL_MAXSTRIP,Math.ceil(slice.length/TL_STRIP))),marks};
+}
+function drawTimeline(canvas,codes,page,exportMode){
+  const g=timelineGrid(codes,page);
+  const dark=!exportMode&&document.documentElement.dataset.theme==='dark';
+  const K=exportMode?{ink:'#111111',grid:'#c4cad0',label:'#333333',bg:'#ffffff'}
+    :(dark?{ink:'#e6f2ea',grid:'rgba(155,179,166,.38)',label:'#9bb3a6',bg:null}
+          :{ink:'#15241b',grid:'rgba(90,107,97,.38)',label:'#5a6b61',bg:null});
+  const {CW,CH,LEFT,RIGHT,TOP,GAP}=TL_G;
+  const ROWS=TL_ROWS.length,stripH=ROWS*CH;
+  const W=LEFT+TL_STRIP*CW+RIGHT,H=TOP+g.strips*(stripH+GAP);
+  const dpr=Math.max(1,window.devicePixelRatio||1);
+  canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  if(K.bg){ctx.fillStyle=K.bg;ctx.fillRect(0,0,W,H);}
+  ctx.font='12px "Noto Sans TC","Microsoft JhengHei",sans-serif';
+  ctx.textBaseline='middle';
+  const ticks=[1,5,10,15,20,25,30,35,40];
+  for(let s=0;s<g.strips;s++){
+    const y0=TOP+s*(stripH+GAP);
+    ctx.strokeStyle=K.grid;ctx.lineWidth=1;
+    for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(LEFT,y0+r*CH+.5);ctx.lineTo(LEFT+TL_STRIP*CW,y0+r*CH+.5);ctx.stroke();}
+    for(let c=0;c<=TL_STRIP;c++){ctx.beginPath();ctx.moveTo(LEFT+c*CW+.5,y0);ctx.lineTo(LEFT+c*CW+.5,y0+stripH);ctx.stroke();}
+    ctx.fillStyle=K.label;
+    ctx.textAlign='right';
+    TL_ROWS.forEach((r,i)=>ctx.fillText(r.label,LEFT-8,y0+i*CH+CH/2));
+    ctx.textAlign='center';
+    ticks.forEach(v=>ctx.fillText(String(page*TL_PAGE+s*TL_STRIP+v),LEFT+(v-1)*CW+CW/2,y0+stripH+12));
+  }
+  ctx.fillStyle=K.ink;
+  g.marks.forEach(m=>{const y0=TOP+m.strip*(stripH+GAP);ctx.fillRect(LEFT+m.col*CW+1,y0+m.row*CH+1,CW-2,CH-2);});
+  return g;
+}
+function renderTimeline(){
+  const n=S.codes.length,pages=tlPages(n);
+  TLP=Math.max(0,Math.min(TLP,pages-1));
+  const g=drawTimeline($('#tlCanvas'),S.codes,TLP,false);
+  $('#tlPage').textContent=`第 ${TLP+1} 頁 / 共 ${pages} 頁（本頁 ${g.count} 筆，共 ${n} 筆）`;
+  $('#tlPrev').disabled=TLP<=0;$('#tlNext').disabled=TLP>=pages-1;
+}
+function timelineCanvasForExport(){const c=document.createElement('canvas');drawTimeline(c,S.codes,TLP,true);return c;}
+async function copyTimeline(){
+  if(!S.codes.length){toast('尚無資料');return;}
+  try{
+    const blob=await new Promise(r=>timelineCanvasForExport().toBlob(r,'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    toast('已複製時間線圖片至剪貼簿');
+  }catch(e){toast('此瀏覽器不支援圖片剪貼簿，請改用下載 PNG');}
+}
+function downloadTimelinePNG(){
+  if(!S.codes.length){toast('尚無資料');return;}
+  timelineCanvasForExport().toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`時間線_第${TLP+1}頁.png`;document.body.appendChild(a);a.click();a.remove();},'image/png');
+}
+
+/* ================= ODT 匯出（由資料直接產生標準 OpenDocument 文字檔） ================= */
+const ODT_MIME='application/vnd.oasis.opendocument.text';
+const ODT_X=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const ODT_P=(t,st)=>String(t==null?'':t).split('\n').map(l=>`<text:p text:style-name="${st||'Body'}">${ODT_X(l)}</text:p>`).join('');
+const ODT_NS='xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink"';
+const ODT_FONT='<style:font-face style:name="標楷體" svg:font-family="標楷體"/>';
+const ODT_AUTO=[
+ '<style:style style:name="Title" style:family="paragraph"><style:paragraph-properties fo:text-align="center" fo:margin-bottom="0.3cm"/><style:text-properties fo:font-size="16pt" fo:font-weight="bold" style:font-name="標楷體" style:font-name-asian="標楷體"/></style:style>',
+ '<style:style style:name="Head" style:family="paragraph"><style:paragraph-properties fo:margin-top="0.35cm" fo:margin-bottom="0.15cm"/><style:text-properties fo:font-size="13pt" fo:font-weight="bold" style:font-name="標楷體" style:font-name-asian="標楷體"/></style:style>',
+ '<style:style style:name="Body" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.1cm" fo:line-height="150%"/><style:text-properties fo:font-size="12pt" style:font-name="標楷體" style:font-name-asian="標楷體"/></style:style>',
+ '<style:style style:name="Note" style:family="paragraph"><style:paragraph-properties fo:margin-top="0.2cm" fo:margin-bottom="0.1cm"/><style:text-properties fo:font-size="10pt" fo:color="#555555" style:font-name="標楷體" style:font-name-asian="標楷體"/></style:style>',
+ '<style:style style:name="CellP" style:family="paragraph"><style:paragraph-properties fo:line-height="130%"/><style:text-properties fo:font-size="11pt" style:font-name="標楷體" style:font-name-asian="標楷體"/></style:style>',
+ '<style:style style:name="CellHP" style:family="paragraph"><style:paragraph-properties fo:text-align="center"/><style:text-properties fo:font-size="11pt" fo:font-weight="bold" style:font-name="標楷體" style:font-name-asian="標楷體"/></style:style>',
+ '<style:style style:name="Tbl" style:family="table"><style:table-properties style:width="17cm" table:align="margins"/></style:style>',
+ '<style:style style:name="TC1" style:family="table-column"><style:table-column-properties style:column-width="3.2cm"/></style:style>',
+ '<style:style style:name="TC2" style:family="table-column"><style:table-column-properties style:column-width="5.8cm"/></style:style>',
+ '<style:style style:name="TC3" style:family="table-column"><style:table-column-properties style:column-width="3.2cm"/></style:style>',
+ '<style:style style:name="TC4" style:family="table-column"><style:table-column-properties style:column-width="4.8cm"/></style:style>',
+ '<style:style style:name="Cell" style:family="table-cell"><style:table-cell-properties fo:padding="0.12cm" fo:border="0.5pt solid #000000"/></style:style>',
+ '<style:style style:name="CellHead" style:family="table-cell"><style:table-cell-properties fo:padding="0.12cm" fo:border="0.5pt solid #000000" fo:background-color="#e8f1ec"/></style:style>'
+].join('');
+function buildOdtContent(f){
+  const yes=on=>on?'■':'□';
+  const H=t=>`<table:table-cell table:style-name="CellHead" office:value-type="string">${ODT_P(t,'CellHP')}</table:table-cell>`;
+  const C=t=>`<table:table-cell table:style-name="Cell" office:value-type="string">${ODT_P(t,'CellP')}</table:table-cell>`;
+  const R=cells=>`<table:table-row>${cells.join('')}</table:table-row>`;
+  const rows=[
+    R([H('授課教師（主導的教師）'),C(f.teacher),H('任教年級'),C(f.grade)]),
+    R([H('任教領域／科目'),C(f.subject),H('觀課人員（認證教師）'),C(f.observer)]),
+    R([H('教學單元'),C(f.unit),H('教學節次'),C(`共 ${f.total||'　'} 節\n本次教學為第 ${f.period||'　'} 節`)]),
+    R([H('公開授課／教學觀察日期'),C(f.date),H('地點'),C(f.place)])
+  ].join('');
+  const catLines=[[1,2,3],[4,5,6],[7,8,9],[10]].map(ids=>ids.map(i=>`${yes(f.salient.includes(i))}${i}${CATS[i].n}`).join('　')).join('\n');
+  const styleTxt=[['direct',1,'直接教學','推論說明：'],['indirect',2,'間接教學','推論說明：'],['none',3,'教學風格不顯著','推論說明：'],['other',4,'其他','其他說明：']]
+    .map(([k,n,l,lab])=>`${yes(f.style===k)}${n}.${l}\n${lab}${(f.texts&&f.texts[k])||''}`).join('\n');
+  const metricsTxt=S.last?METRICS.map(m=>`${m.name}：${m.f?m.f(S.last):'未計算'}（${m.t}）`).join('\n'):'尚未分析';
+  let body='';
+  body+=ODT_P('工具7、佛蘭德斯（Flanders）互動分析法量化分析表','Title');
+  body+=`<table:table table:name="基本資料" table:style-name="Tbl"><table:table-column table:style-name="TC1"/><table:table-column table:style-name="TC2"/><table:table-column table:style-name="TC3"/><table:table-column table:style-name="TC4"/>${rows}</table:table>`;
+  body+=ODT_P('備註：本紀錄表由觀課人員依據客觀具體事實填寫。','Note');
+  body+=ODT_P('內容分析','Head');
+  body+=ODT_P('一、師生互動類別分析','Head');
+  body+=ODT_P('1. 最顯著的類別為：（可複選）\n'+catLines,'Body');
+  body+=ODT_P('2. 其他：'+(f.other1||''),'Body');
+  body+=ODT_P('二、教師教學風格分析','Head');
+  body+=ODT_P(styleTxt,'Body');
+  body+=ODT_P('三、最顯著類別、教師教學風格與學生學習成效之分析：','Head');
+  body+=ODT_P(f.three||'','Body');
+  body+=ODT_P('四、其他：','Head');
+  body+=ODT_P(f.four||'（無）','Body');
+  body+=ODT_P('FIAS 13 項量化指標（對照常模）','Head');
+  body+=ODT_P(metricsTxt,'Body');
+  body+=ODT_P('1. 須一併檢附「佛蘭德斯(Flanders)互動分析法」之原始觀察記錄。\n2. 可使用本量化分析表填寫，或另外使用其他版本之「佛蘭德斯(Flanders)互動分析法量化分析表」(二擇一)','Note');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<office:document-content ${ODT_NS} office:version="1.2"><office:font-face-decls>${ODT_FONT}</office:font-face-decls><office:automatic-styles>${ODT_AUTO}${APX_ODT_AUTO}</office:automatic-styles><office:body><office:text>${body}</office:text></office:body></office:document-content>`;
+}
+function buildOdtPackage(){
+  const styles=`<?xml version="1.0" encoding="UTF-8"?>\n<office:document-styles ${ODT_NS} office:version="1.2"><office:font-face-decls>${ODT_FONT}</office:font-face-decls><office:styles><style:default-style style:family="paragraph"><style:text-properties style:font-name="標楷體" style:font-name-asian="標楷體" fo:font-size="12pt"/></style:default-style></office:styles><office:automatic-styles/><office:master-styles/></office:document-styles>`;
+  const meta=`<?xml version="1.0" encoding="UTF-8"?>\n<office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:dc="http://purl.org/dc/elements/1.1/" office:version="1.2"><office:meta><dc:title>工具7、佛蘭德斯互動分析法量化分析表</dc:title><meta:generator>Flanders 網頁版</meta:generator><meta:creation-date>${new Date().toISOString()}</meta:creation-date></office:meta></office:document-meta>`;
+  const manifest=`<?xml version="1.0" encoding="UTF-8"?>\n<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:version="1.2" manifest:media-type="${ODT_MIME}"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="meta.xml" manifest:media-type="text/xml"/></manifest:manifest>`;
+  return {styles,meta,manifest};
+}
+/* ===== v8：ODT 附錄（與 Word 附錄相同內容：矩陣、變量、時間線、原始記錄） ===== */
+const APX_ODT_AUTO=[
+ '<style:style style:name="ApxPage" style:family="paragraph"><style:paragraph-properties fo:margin-top="0.4cm" fo:margin-bottom="0.25cm" fo:keep-with-next="always"/><style:text-properties fo:font-size="15pt" fo:font-weight="bold" style:font-name="標楷體" style:font-name-asian="標楷體"/></style:style>',
+ '<style:style style:name="ApxCenter" style:family="paragraph"><style:paragraph-properties fo:text-align="center" fo:margin-top="0cm" fo:margin-bottom="0.1cm" fo:keep-together="always"/></style:style>',
+ '<style:style style:name="ApxFig" style:family="graphic"><style:graphic-properties style:wrap="none" style:vertical-pos="top" style:vertical-rel="baseline"/></style:style>',
+ '<style:style style:name="ApxTbl" style:family="table"><style:table-properties style:width="16cm" table:align="center"/></style:style>',
+ '<style:style style:name="ApxCol" style:family="table-column"><style:table-column-properties style:column-width="1.6cm"/></style:style>',
+ '<style:style style:name="ApxCell" style:family="table-cell"><style:table-cell-properties fo:padding="0.05cm" fo:border="0.5pt solid #808080"/></style:style>',
+ '<style:style style:name="ApxCellP" style:family="paragraph"><style:paragraph-properties fo:text-align="center" fo:margin-top="0cm" fo:margin-bottom="0cm"/><style:text-properties fo:font-size="8pt" style:font-name="標楷體" style:font-name-asian="標楷體"/></style:style>'
+].join('');
+
+function apxOdtBuild(app){
+ const a=app.a, base=app.base, autoPad=!!app.autoPad, n=base.length;
+ const core=autoPad?Math.max(0,n-2):n;
+ const media=[], mani=[];
+ const img=(cv,fname,wcm)=>{
+  let hcm=wcm*cv.height/cv.width;
+  if(hcm>23){hcm=23; wcm=hcm*cv.width/cv.height;}
+  media.push({path:'Pictures/'+fname,bytes:apxPngBytes(cv)});
+  mani.push('<manifest:file-entry manifest:full-path="Pictures/'+fname+'" manifest:media-type="image/png"/>');
+  return '<text:p text:style-name="ApxCenter"><draw:frame draw:style-name="ApxFig" draw:name="'+fname+'" text:anchor-type="as-char" svg:width="'+wcm.toFixed(2)+'cm" svg:height="'+hcm.toFixed(2)+'cm" draw:z-index="0"><draw:image xlink:href="Pictures/'+fname+'" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/></draw:frame></text:p>';
+ };
+ const cell=t=>'<table:table-cell table:style-name="ApxCell" office:value-type="string">'+ODT_P(t,'ApxCellP')+'</table:table-cell>';
+ let rows='';
+ for(let i=0;i<n;i+=10){
+  let cells='';
+  for(let c=0;c<10;c++){
+   const idx=i+c;
+   if(idx<n){
+    const v=base[idx]; const pad=autoPad&&(idx===0||idx===n-1); const nm=CATS[v]?CATS[v].n:'?';
+    cells+=cell('#'+(idx+1)+'\n'+v+' '+nm+(pad?'(緩衝)':''));
+   }else cells+=cell('');
+  }
+  rows+='<table:table-row>'+cells+'</table:table-row>';
+ }
+ const tbl='<table:table table:name="ApxRaw" table:style-name="ApxTbl"><table:table-column table:style-name="ApxCol" table:number-columns-repeated="10"/>'+rows+'</table:table>';
+
+ let x='';
+ x+=ODT_P('附錄：須一併檢附「佛蘭德斯(Flanders)互動分析法」之原始觀察記錄','ApxPage');
+ x+=ODT_P('觀察序列：核心代碼 '+core+' 筆（約 '+(core*3)+' 秒）｜有效分析序列 '+n+' 筆（'+(autoPad?'已於首尾各補一筆 10 緩衝':'原始序列，未補緩衝')+'）｜相鄰轉換組數 '+a.N,'Body');
+ x+=ODT_P('教學風格判定：'+STYLE[a.style]+'｜I/D ratio：'+fr(a.m.ID)+'｜判定區間 ±'+a.band,'Body');
+ x+=ODT_P('一、10×10 互動分析矩陣','Head');
+ x+=img(apxMatrixCanvas(a),'matrix.png',11.5);
+ x+=ODT_P('二、13 項變量分析','Head');
+ x+=img(apxVarsCanvas(a),'vars.png',11.5);
+ x+=ODT_P('三、時間線標記圖 (Time-line Coding)','Head');
+ x+=ODT_P('每一小格代表 3 秒；列由上至下依序為 1·2、3、9、4、8、5、6·7、10（安靜或混亂）。灰色格為首尾緩衝。','Note');
+ const CH=800, chunks=Math.max(1,Math.ceil(n/CH));
+ for(let c=0;c<chunks;c++){
+  const seg=base.slice(c*CH,(c+1)*CH);
+  const first=c*CH+1, last=c*CH+seg.length;
+  x+=ODT_P('第 '+(c+1)+'／'+chunks+' 段（第 '+first+'–'+last+' 筆）','Note');
+  x+=img(apxTimelineCanvas(seg,c*CH,'Time-line Coding｜第 '+first+'–'+last+' 筆（每格 3 秒）',autoPad?n:0),'timeline'+c+'.png',11.5);
+ }
+ x+=ODT_P('四、原始觀察記錄明細表','Head');
+ x+=ODT_P('每一格為「#序號 ／ 類別代碼 類別名稱」，依觀察順序排列；灰底為首尾緩衝。','Note');
+ x+=tbl;
+ x+=ODT_P('類別對照：'+[1,2,3,4,5,6,7,8,9,10].map(k=>k+' '+CATS[k].n).join('、')+'。（手動輸入或 Excel 匯入時第 10 類以 0 記錄，本表統一以 10 顯示。）','Note');
+ return {xml:x,media:media,manifest:mani.join('')};
+}
+
+async function makeOdt(f){
+ const zip=new JSZip();const pk=buildOdtPackage();const apxOdt=apxOdtBuild(apxInput());
+ zip.file('mimetype',ODT_MIME,{compression:'STORE'});
+ zip.file('META-INF/manifest.xml',pk.manifest.replace('</manifest:manifest>',()=>apxOdt.manifest+'</manifest:manifest>'));
+ zip.file('content.xml',buildOdtContent(f).replace('</office:text>',()=>apxOdt.xml+'</office:text>'));
+ for(const m of apxOdt.media)zip.file(m.path,m.bytes);
+ zip.file('styles.xml',pk.styles);zip.file('meta.xml',pk.meta);
+ return zip.generateAsync({type:'uint8array',compression:'DEFLATE',mimeType:ODT_MIME});
+}
+async function exportOdt(){
+  if(S.codes.length<2){toast('請先在第一步記錄代碼');goStep(1);return;}
+  if(!S.last&&!runAnalysis(true)){toast('分析失敗，請確認資料');return;}
+  const btn=$('#exportOdtBtn');btn.classList.add('busy');btn.textContent='產生中…';
+  try{
+    const f=collectForm();
+    const bytes=await makeOdt(f);
+    const name=`工具7_佛蘭德斯量化分析表_${f.teacher||'未填教師'}_${new Date().toISOString().slice(0,10)}.odt`;
+    if(isGAS()){
+      const url=await gasCall('saveFile',toB64(bytes),name,ODT_MIME);
+      showDL(url,name,true);
+    }else{
+      const url=URL.createObjectURL(new Blob([bytes],{type:ODT_MIME}));
+      showDL(url,name,false);
+      const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    }
+    toast('ODT 已產生');
+  }catch(e){toast('ODT 匯出失敗：'+e.message);}
+  finally{btn.classList.remove('busy');btn.textContent='下載 ODT';}
+}
+
+/* ================= 初始化 ================= */
+function buildKeypad(){
+  $('#keypad').innerHTML=Object.keys(CATS).map(k=>
+    `<button type="button" class="key ${CATS[k].g}" data-code="${k}" aria-label="${k}，${CATS[k].n}（${GROUP[CATS[k].g]}）"><b>${k}</b><span>${CATS[k].n}</span></button>`).join('');
+  $('#salBox').innerHTML=Object.keys(CATS).map(k=>
+    `<label class="pick ${CATS[k].g}"><input type="checkbox" class="sal" value="${k}"><span><b>${k}</b> ${CATS[k].n}</span></label>`).join('');
+}
+
+function bind(){
+  $('#keypad').addEventListener('click',e=>{const b=e.target.closest('.key');if(b)push(+b.dataset.code);});
+  $('#undoBtn').onclick=undo;
+  $('#clearBtn').onclick=clearAll;
+  document.addEventListener('keydown',e=>{
+    if(S.step!==1||e.ctrlKey||e.metaKey||e.altKey)return;
+    if(e.target.closest&&e.target.closest('input,textarea,select'))return;
+    if(/^[1-9]$/.test(e.key)){push(+e.key);}
+    else if(e.key==='0'){push(10);}
+    else if(e.key==='Backspace'){e.preventDefault();undo();}
+  });
+  $('#codeText').addEventListener('input',e=>{setFromText(e.target.value);});
+  $('#codeFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;
+    const txt=await f.text();$('#codeText').value=txt;setFromText(txt);toast(`已匯入 ${f.name}`);e.target.value='';});
+  $('#sampleBtn').onclick=()=>createRecordFromCodes('說明書範例',SAMPLE);
+  $('#s_pct').addEventListener('change',e=>{S.settings.salPct=Math.min(100,Math.max(1,+e.target.value||10));S.last=null;save();if(S.step>=2)runAnalysis(true);});
+  $('#s_band').addEventListener('change',e=>{S.settings.band=Math.min(0.9,Math.max(0,+e.target.value||0.2));S.last=null;save();if(S.step>=2)runAnalysis(true);});
+  $$('.steps [data-step]').forEach(b=>b.addEventListener('click',()=>goStep(+b.dataset.step)));
+  $$('[data-goto]').forEach(b=>b.addEventListener('click',()=>goStep(+b.dataset.goto)));
+  $('#prevBtn').onclick=()=>goStep(S.step-1);
+  $('#nextBtn').onclick=nextStep;
+  $('#runBtn').onclick=()=>{if(runAnalysis(false))toast('已重新分析');};
+  $('#csvBtn').onclick=()=>{
+    if(!S.last&&!runAnalysis(true)){toast('請先記錄資料');return;}
+    const blob=new Blob(['\ufeff'+matrixCSV(S.last)],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='轉換矩陣.csv';document.body.appendChild(a);a.click();a.remove();
+  };
+  $('#tlPrev').onclick=()=>{TLP--;renderTimeline();};
+  $('#tlNext').onclick=()=>{TLP++;renderTimeline();};
+  $('#tlCopy').onclick=copyTimeline;
+  $('#tlPng').onclick=downloadTimelinePNG;
+  $('#exportOdtBtn').onclick=()=>exportOdt().catch(e=>toast('匯出失敗：'+e.message));
+  $('#s_autopad').addEventListener('change',e=>{S.settings.autoPad=e.target.checked;S.last=null;save();if(S.step>=2)runAnalysis(true);});
+  $('#recSelect').addEventListener('change',e=>switchRecord(e.target.value));$('#recNew').onclick=newRecord;$('#recRename').onclick=renameRecord;$('#recDelete').onclick=deleteRecord;$('#recExport').onclick=exportRecordTxt;$('#codeFileNew').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;const txt=await f.text();createRecordFromCodes(f.name.replace(/\.[^.]+$/,''),txt);e.target.value='';});
+  $('#redraftBtn').onclick=redraft;
+  $('#exportBtn').onclick=exportDoc;
+  $('#aiPromptBtn').onclick=()=>{refreshAIPrompt();copyAIPrompt();};$('#aiCopyBtn').onclick=copyAIPrompt;$('#ai_pii').addEventListener('change',refreshAIPrompt);
+  $('#tplFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;
+    TEMPLATE=new Uint8Array(await f.arrayBuffer());setTplStatus(true,'已載入：'+f.name);e.target.value='';});
+  $$('[data-view]').forEach(b=>b.addEventListener('click',()=>{S.view=b.dataset.view;applyLayout();save();}));
+  $('#themeBtn').onclick=()=>{const cur=document.documentElement.dataset.theme;S.theme=cur==='dark'?'light':'dark';applyTheme();save();};
+  const onMq=()=>applyLayout();
+  mq.addEventListener?mq.addEventListener('change',onMq):mq.addListener(onMq);
+  dmq.addEventListener?dmq.addEventListener('change',()=>{if(S.theme==='auto')applyTheme();}):dmq.addListener(()=>{if(S.theme==='auto')applyTheme();});
+  document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('[data-persist]'))save();});
+  document.addEventListener('change',e=>{if(e.target.matches&&(e.target.matches('.sal')||e.target.name==='style'))save();});
+}
+
+function init(){
+ buildKeypad();
+ const d=load()||{};
+ S.settings={...S.settings,...(d.settings||{})};
+ S.view=d.view||'auto';S.theme=d.theme||'auto';
+ RS=loadRS()||{current:null,list:{}};
+ if(!Object.keys(RS.list).length){
+  const r=blankRec('觀察紀錄 1');
+  r.codes=Array.isArray(d.codes)?d.codes.filter(c=>Number.isInteger(c)&&c>=1&&c<=10):[];
+  r.auto=d.auto||{};r.form=d.form||{};
+  RS.list[r.id]=r;RS.current=r.id;
+ }
+ if(!RS.list[RS.current])RS.current=Object.keys(RS.list)[0];
+ $('#s_pct').value=S.settings.salPct;$('#s_band').value=S.settings.band;
+ const ap=document.getElementById('s_autopad');if(ap)ap.checked=!!S.settings.autoPad;
+ applyLayout();applyTheme();
+ S.step=1;
+ applyRecord(curRec());
+ renderRecList();
+ bind();loadTemplate();
+ goStep(d.step&&d.step>=1?d.step:1);
+}
+/* ================= 匯出 AI 提示詞（v2：引用工具7與 FIAS 介紹） ================= */
+const AI_TOOL7_FORM=[
+'【基本資料】授課教師（主導的教師）、任教年級、任教領域/科目、觀課人員（認證教師）、教學單元、教學節次（共＿節；本次為第＿節）、公開授課/教學觀察日期、地點',
+'【備註】本紀錄表由觀課人員依據客觀具體事實填寫。',
+'【內容分析】',
+'　一、師生互動類別分析：1.最顯著的類別為（可複選）；2.其他',
+'　二、教師教學風格分析（使用者測量後所屬類別的推論說明）：□1.直接教學 推論說明；□2.間接教學 推論說明；□3.教學風格不顯著 推論說明；□4.其他',
+'　三、最顯著類別、教師教學風格與學生學習成效之分析',
+'　四、其他：1.須一併檢附「佛蘭德斯(Flanders)互動分析法」之原始觀察記錄；2.可使用本量化分析表填寫，或另外使用其他版本之量化分析表（二擇一）'
+];
+const AI_FIAS_CATS=[
+'1　接納學生的情感：以不具威脅性的方式接納及澄清學生的態度或情感（正向或負向），也包括預測或回想學生的情感。',
+'2　稱讚或鼓勵：稱讚或鼓勵學生的動作或行為；紓解緊張但不傷人的笑話；點頭、說「嗯（Um hm）」或「繼續下去（Go on）」等。',
+'3　接受或利用學生的想法：澄清、擴大或發展學生提出的意見或想法。若教師呈現較多自己的意見，則屬第 5 類。',
+'4　問問題：以教師的意見或想法為基礎，詢問學生有關內容或步驟的問題，並期待學生回答。',
+'5　演講：就內容或步驟提供事實或見解，表達教師自己的觀念、解釋，或引述權威者（非學生）的看法。',
+'6　指示：指示、指令或命令，具有期望學生服從的功能。',
+'7　批評學生或維護權威：企圖改變學生行為、責罵學生、說明教師為何採取某作為，或極端自我參照。',
+'8　學生話語—教師驅動：學生為回應教師所講的話（教師指定答問、引發說話或建構對話情境），自由表達受到限制。',
+'9　學生話語—學生主動：學生主動開啟對話、表達自己的想法、引起新話題、提出具思考性的問題、超越既有架構。',
+'10　安靜或混亂：暫時停頓、短時間安靜或混亂，以致觀察者無法瞭解師生之間的溝通。（系統以輸入 0 記錄）'
+];
+const AI_FIAS_VARS=[
+'TT 教師話語比率｜列1–7合計 ÷ 總數 ×100｜教學時段內教師講話的比率｜約 68',
+'PT 學生話語比率｜列8–9合計 ÷ 總數 ×100｜教學時段內學生講話的比率｜約 20',
+'SC 安靜或混亂比率｜列10 ÷ 總數 ×100｜數據愈高，表示師生口語互動「量少質差」｜約 11–12',
+'I/D ratio｜列1–4合計 ÷ 列5–7合計 ×100（觀察次數少於 1000 次時適用）｜大於 100 表示間接影響多於直接影響｜未列常模',
+'i/d ratio｜列1–3合計 ÷ 列6–7合計 ×100（觀察次數大於 1000 次時適用）｜同上｜未列常模',
+'TRR 教師回應學生比率｜列1–3合計 ÷（列1–3合計＋列6–7合計）×100｜教師回應學生觀念與感受的傾向｜約 42',
+'TQR 教師發問比率｜列4 ÷（列4–5合計）×100｜教師以問題引導討論的傾向｜約 26',
+'PIR 學生主動比率｜列9 ÷（列8–9合計）×100｜學生話語中由學生主動引發的比例｜約 34',
+'TRR89 即時回應比率｜（列8–9 × 行1–3）÷［（列8–9 × 行1–3）＋（列8–9 × 行6–7）］×100｜學生停止說話後，教師立即以間接方式回應的傾向｜約 60（本工具標示為待確認，不可作為結論依據）',
+'TQR89 即時發問比率｜（列8–9 × 行4）÷（列8–9 × 行4–5）×100｜教師即時以問題追問學生話語的傾向｜約 44',
+'CCR 內容十字區比率｜（列4–5合計 ＋ 行4–5合計 − 細格(4–5,4–5)）÷ 總數 ×100｜以教材內容發問與講授為重心的比例｜約 55',
+'SSR 穩定狀態區比率｜對角線（同類別接續）合計 ÷ 總數 ×100｜師生言談停留在同一類別 3 秒以上的趨勢｜約 50',
+'PSSR 學生穩定狀態區比率｜［(8,8)＋(9,9)］÷ 列8–9合計 ×100｜學生說話持續 3 秒以上的比例｜約 35–40'
+];
+
+function buildAIPrompt(withPII){
+ if(!S.last&&!runAnalysis(true))return null;
+ const a=S.last;const v=id=>($('#'+id)?.value||'').trim();
+ const n=S.codes.length;const N=a.N;const M=a.M;
+ const seq=S.codes.map(c=>c===0?10:c);
+ const cnt={};for(let k=1;k<=10;k++)cnt[k]=0;
+ seq.forEach(c=>{cnt[c]=(cnt[c]||0)+1;});
+ const cellSum=arr=>arr.reduce((t,p)=>t+((M[p[0]]&&M[p[0]][p[1]])||0),0);
+ const rowSum=r=>{let t=0;for(let c=1;c<=10;c++)t+=((M[r]&&M[r][c])||0);return t;};
+ const qa=cellSum([[4,4],[4,8],[8,4],[8,8]]);
+ const inq=cellSum([[9,9],[9,3],[3,3],[3,9],[8,3],[4,9],[8,9],[4,3]]);
+ const pct=(x,y)=>y>0?(x/y*100).toFixed(1)+'%':'—';
+ const band=a.band;
+ const secs=n*3;
+ const L=[];const add=(...x)=>x.forEach(t=>L.push(t));
+
+ add('# 角色與任務',
+ '你是熟悉 Flanders 互動分析法（FIAS）與教師專業發展的觀課輔導教師。請依下列「工具7量化分析表」的欄位結構，搭配本次 FIAS 量化結果與原始代碼序列，撰寫給授課教師閱讀的觀課回饋。回饋須客觀、具體、可追溯到課堂中的實際片段，並同時指出做得好的地方與可以調整的地方。',
+ '');
+
+ add('# 一、工具7量化分析表（欄位結構，請依此順序撰寫）','以下摘錄自「工具7、佛蘭德斯（Flanders）互動分析法量化分析表」：');
+ AI_TOOL7_FORM.forEach(x=>add(x));
+ add('','欄位說明：',
+ '・「二、教師教學風格分析」：本次量化結果判定為「'+STYLE[a.style]+'」，請針對此類別撰寫推論說明；其他三類可簡述未選擇的理由。',
+ '・「三、最顯著類別、教師教學風格與學生學習成效之分析」：FIAS 只記錄課堂口語互動，無法判斷學習成效。學習成效標示「待補充」，並說明可用哪些依據（隨堂練習、學習單、作業、課後評量）補充。',
+ '・「四、其他」：須一併檢附原始觀察記錄（本次代碼序列）。','');
+
+ add('# 二、寫作原則（必須遵守）',
+ '1. 證據格式：每項判斷依「現象（數值，常模）→ 解讀 → 序列證據（第 X–Y 筆）」撰寫。序列證據必須取自下方「五、原始代碼序列」，找不到對應片段就不要寫。',
+ '2. 數據與推論分開：先寫「數據顯示」，再寫「合理推論」，推論須標註「（推論）」，不要把推論寫成事實。',
+ '3. 用語：描述事實，不使用「極佳」「很棒」「高度熱情」「非常好」等評價詞。例：「學生說話占 40.54%（常模約 20%）」。',
+ '4. 觀察時間：觀察時間 = 代碼筆數 × 3 秒。結論範圍須與觀察時間相符；若未達一節課（約 45 分鐘，約 900 筆），結論僅限於「本段」，不作為整堂課或教師整體能力的判定。',
+ '5. 樣本與信心：代碼筆數少於 50 筆，或數據彼此矛盾時，須說明結論的信心程度。',
+ '6. 學習成效：FIAS 無法判斷學習成效，不得臆測。請標示「待補充」，並列出建議證據；如要推論互動與學習的可能關聯，須註明為推論。',
+ '7. 常模只供參考，不代表優劣。標示「待確認」的指標不可作為結論依據。',
+ '8. 語句範例：須是教師可直接說出口的話，每句以「語句範例：」開頭，學生姓名以「○○同學」代替。',
+ '9. 不評價教師的人格或能力；語氣溫和、專業、具體，使用繁體中文。',
+ '');
+
+ add('# 三、基本資料');
+ const info=[['任教年級',v('f_grade')],['任教領域／科目',v('f_subject')],['教學單元',v('f_unit')],['教學節次',(v('f_period')||'—')+' / 共 '+(v('f_total')||'—')+' 節'],['觀察日期',v('f_date')]];
+ if(withPII)info.unshift(['授課教師',v('f_teacher')],['觀課人員',v('f_observer')],['地點',v('f_place')]);
+ info.forEach(([k,x])=>add('- '+k+'：'+(x||'未填')));
+ add('- 觀察時間：代碼 '+n+' 筆 × 3 秒 = 約 '+secs+' 秒（約 '+(secs/60).toFixed(1)+' 分鐘）'+(n<900?'；未達一節 45 分鐘課（約 900 筆），結論僅限於本段':'；已達約 45 分鐘課的筆數'));
+ add('- FIAS 分析設定：最顯著類別門檻 '+S.settings.salPct+'%；教學風格判定區間 ±'+band+'（即 '+Math.round((1-band)*100)+'%～'+Math.round((1+band)*100)+'%）；首尾各補一筆「10」：'+(S.settings.autoPad?'是':'否'));
+ add('');
+
+ add('# 四、本次量化分析結果');
+ add('- 代碼筆數：'+n+'；相鄰轉換組數：'+N+'（互動矩陣組數 = 代碼筆數 − 1）。');
+ add('- 各類別次數（比例）：'+Array.from({length:10},(_,i)=>(i+1)+' 類 '+cnt[i+1]+' 次（'+pct(cnt[i+1],n)+'）').join('、')+'。');
+ add('- 最顯著類別（佔比達 '+S.settings.salPct+'% 以上）：'+(a.salient&&a.salient.length?a.salient.map(k=>k+' '+CATS[k].n).join('、'):'無'));
+ add('- 互動矩陣列合計（列 1–10）：'+Array.from({length:10},(_,i)=>(i+1)+'＝'+rowSum(i+1)).join('、')+'；合計 '+Array.from({length:10},(_,i)=>rowSum(i+1)).reduce((x,y)=>x+y,0)+'（應等於相鄰轉換組數 '+N+'）。');
+ add('- 注意：類別次數包含序列最後一筆，而 I/D ratio、TT、PT 等變量以互動矩陣（N 組）計算，因此「類別次數」與「列合計」的數字會略有不同，屬正常現象。撰寫時請以變量所列數值為準。');
+ add('- 教學風格判定：'+STYLE[a.style]+'（I/D ratio＝'+fr(a.m.ID)+'；分子為列 1–4 合計，分母為列 5–7 合計）。');
+ add('- 問與答模式細格合計：'+qa+' 次（佔轉換組數 '+pct(qa,N)+'）；創造性詢答模式細格合計：'+inq+' 次（佔轉換組數 '+pct(inq,N)+'）。');
+ add('- 13 項變量計算結果：');
+ METRICS.forEach(m=>{const val=m.f?m.f(a):'—';const flag=m.tag==='warn'?'（與畫面不符，待確認，請勿作為結論依據）':'';add('　・'+m.name+'：'+val+flag+'｜'+m.note);});
+ add('');
+
+ add('# 五、原始代碼序列（逐筆，依筆號標示；序列證據須由此取得）');
+ for(let i=0;i<seq.length;i+=30)add('第 '+(i+1)+'–'+Math.min(i+30,seq.length)+' 筆：'+seq.slice(i,i+30).join(' '));
+ add('代碼對照：1 接納學生情感、2 稱讚或鼓勵、3 接受或利用學生想法、4 問問題、5 演講、6 指示、7 批評學生或維護權威、8 學生話語—教師驅動、9 學生話語—學生主動、10 安靜或混亂。','');
+
+ add('# 六、教師已填寫的文字（系統草稿或教師修改版，請依觀課實況判斷）');
+ const texts=[['教學風格——直接教學推論',v('t_direct')],['教學風格——間接教學推論',v('t_indirect')],['教學風格——不顯著推論',v('t_none')],['教學風格——其他',v('t_other')],['最顯著類別與風格分析',v('t_three')],['其他說明',v('t_four')],['最顯著類別——其他',v('f_other1')]].filter(x=>x[1]);
+ if(texts.length)texts.forEach(([k,x])=>add('- '+k+'：'+x));else add('（尚未填寫）');
+ add('');
+
+ add('# 七、輸出前核對（必做）',
+ '1. 各類別百分比加總約為 100%；TT 與 PT 加上 SC 約為 100%。',
+ '2. 文中引用的數值須與「四、本次量化分析結果」一致；不可自行推算未列出的指標，「待確認」的指標不得作為結論依據。',
+ '3. 序列證據的筆號須確實存在於「五、原始代碼序列」，且該段代碼須與所寫的現象相符。',
+ '4. 教師草稿的數字若與本次量化結果不同，請列在「需核對事項」，不要直接改判。',
+ '');
+
+ add('# 八、輸出格式（請依序輸出）',
+ '（一）內容分析：1. 最顯著的類別為： 2. 其他補充說明（含觀察時間、資料品質與信心程度）',
+ '（二）教師教學風格分析：針對判定類別撰寫推論說明，引用 I/D ratio 與相關變量；說明未選擇其他類別的理由。',
+ '（三）最顯著類別、教師教學風格與學生學習成效之分析：互動型態的描述；學習成效標示「待補充」並列出建議證據。',
+ '（四）其他：資料限制、需核對事項、須一併檢附原始觀察記錄的提醒。',
+ '（五）給授課教師的質性回饋：',
+ '　4-1 做得好的地方（3 點）：每點包含數據依據、序列證據（第 X–Y 筆）、對學生學習可能的幫助（標註推論）。',
+ '　4-2 可以調整的地方（2–3 點）：每點包含現況數據（含常模）、序列中觀察到的模式（含筆號）、具體做法、語句範例、下次可追蹤的指標。',
+ '　4-3 下次觀課的追蹤重點（2–3 項）：指標名稱與改善方向；目標數值由授課教師自行設定。',
+ '　4-4 鼓勵與下一步（3 句以內）。',
+ '');
+
+ add('# 九、改寫範例',
+ '原句：「老師的提問很棒，學生參與熱絡。」',
+ '改寫：「本段教師發問比率 TQR 為 56.25%（常模約 26%）；學生主動發言（9 類）占學生話語 46.67%（常模約 34%）。第 X–Y 筆出現 4→8→9 的序列，顯示教師提問後多數學生能延續回應（推論）。」',
+ '');
+
+ add('請開始撰寫。');
+ return L.join('\n');
+}
+
+function refreshAIPrompt(){
+ const box=$('#aiPromptBox');if(!box)return;
+ const t=buildAIPrompt(!!($('#ai_pii')&&$('#ai_pii').checked));
+ if(!t){box.hidden=true;toast('請先記錄至少 2 筆代碼');return;}
+ box.hidden=false;$('#aiPromptText').value=t;$('#aiPromptCount').textContent='約 '+t.length+' 字';
+}
+async function copyAIPrompt(){
+ const ta=$('#aiPromptText');
+ if(!ta||!ta.value){refreshAIPrompt();return;}
+ try{await navigator.clipboard.writeText(ta.value);toast('已複製 AI 提示詞，可貼到 AI 對話中');}
+ catch(e){
+  ta.focus();ta.select();
+  try{document.execCommand('copy');toast('已複製 AI 提示詞');}
+  catch(err){toast('無法自動複製，請手動選取文字後複製');}
+ }
+ $('#aiPromptBox').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+window.FL={parseCodes,analyze,drafts,makeDocx,makeOdt,collectForm,prefillForm,push,undo,setFromText,state:S,timelineGrid,tlPages,drawTimeline};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+</script>
+</body>
+</html>
